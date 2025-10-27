@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Drawsito UML Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="estilos.css"/>
+
+  <!-- Librerías (mínimas y vía CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/konva@9/konva.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@jsplumb/browser-ui@6/dist/js/jsplumb.browser-ui.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.7/dist/floating-ui.dom.umd.min.js"></script>
+</head>
+<body>
+<header class="barra">
+  <strong>Drawsito</strong>
+  <button id="btn_guardar">Guardar</button>
+  <button id="btn_cargar">Cargar</button>
+  <input id="inp_id" placeholder="id a cargar (p.ej. dibujo-20251021-210000)" size="34"/>
+  <span class="sep"></span>
+
+  <label class="zoomlbl">Zoom
+    <select id="sel_zoom">
+      <option>50%</option><option>75%</option><option selected>100%</option>
+      <option>125%</option><option>150%</option><option>200%</option>
+    </select>
+  </label>
+</header>
+
+<main class="principal">
+  <!-- Paleta -->
+  <aside class="paleta">
+    <h4>Paleta</h4>
+    <div class="pieza" draggable="true" data-tipo="clase">🧱 Clase UML</div>
+    <div class="pieza" draggable="true" data-tipo="texto">🔖 Texto</div>
+    <p class="nota">Arrastra al lienzo. Doble clic para editar. Arrastra desde bordes para redimensionar. Conecta arrastrando desde el borde de una clase a otra.</p>
+  </aside>
+
+  <!-- Lienzo: fondo (Konva) + capa de nodos DOM (jsPlumb/Interact) -->
+  <section class="zona" id="zona_canvas">
+    <div id="fondo"></div>
+    <div id="capa_nodos"></div>
+
+    <!-- Editor inline y borrar -->
+    <input id="editor_inline"/>
+    <button id="btn_borrar_sel">🗑 Eliminar</button>
+  </section>
+
+  <!-- Panel derecho -->
+  <aside class="panel">
+    <h4>Opciones</h4>
+    <div class="grupo">
+      <label><input type="checkbox" id="opt_ver_grid" checked> Cuadrícula</label><br/>
+      <label><input type="checkbox" id="opt_ver_pag" checked> Vista de la página</label>
+    </div>
+
+    <div class="grupo">
+      <div class="etq">Tamaño del papel</div>
+      <select id="sel_papel">
+        <option value="A4" selected>A4 (210 × 297 mm)</option>
+        <option value="Letter">Carta (216 × 279 mm)</option>
+      </select>
+      <div class="fila">
+        <label><input type="radio" name="ori" value="v" checked> Vertical</label>
+        <label><input type="radio" name="ori" value="h"> Horizontal</label>
+      </div>
+      <small class="nota">La hoja se expande/contrae por bloques según contenido.</small>
+    </div>
+
+    <hr/>
+    <div id="panel_clase" class="grupo" style="display:none">
+      <h5>Clase UML</h5>
+      <label class="etq">Nombre</label>
+      <input type="text" id="clase_titulo" placeholder="Nombre de la clase"/>
+      <div class="fila">
+        <button id="btn_add_atr">+ Atributo</button>
+        <button id="btn_add_met">+ Método</button>
+      </div>
+      <small class="nota">Doble clic para editar; Enter agrega nuevas filas; vacío para eliminar.</small>
+    </div>
+  </aside>
+</main>
+
+<div class="ayuda">Ctrl + rueda = Zoom • Backspace/Del elimina • Doble clic en línea = editar etiqueta/cardinalidad</div>
+
+<script>window.DRAWSITO_CONFIG={ api:"/proyecto/drawsito_back/api.php" };</script>
+<script src="core/estado.js"></script>
+<script src="core/pagina.js"></script>
+<script src="core/render.js"></script>
+<script src="core/interaccion.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

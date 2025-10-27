@@ -1,0 +1,50 @@
+:root{--f:13px;--grisB:#d9dde5;--grisE:#eef2f7;--azul:#0b57d0;--borde:#3b3b3b;--grid:#f1f5f9;--pag:#cbd5e1;}
+*{box-sizing:border-box;font-family:system-ui,Segoe UI,Arial;margin:0;padding:0}
+html,body{height:100%;background:#fafafa;color:#111}
+
+/* Barra */
+.barra{display:flex;gap:.5rem;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--grisB);background:#fff}
+.barra button,.barra input,.barra select{font-size:var(--f);padding:.42rem .6rem;border:1px solid var(--grisB);background:#fff;border-radius:.6rem}
+.barra button:hover{background:#f3f6fb;cursor:pointer}
+.sep{width:1px;height:26px;background:var(--grisB);margin:0 .25rem}
+.zoomlbl{display:flex;gap:.35rem;align-items:center}
+
+/* Layout */
+.principal{display:grid;grid-template-columns:220px 1fr 260px;min-height:calc(100vh - 50px)}
+
+/* Paleta */
+.paleta{border-right:1px solid var(--grisB);background:#fff;padding:.6rem;overflow:auto}
+.paleta .pieza{user-select:none;border:1px dashed #c9d3e5;padding:.5rem;border-radius:.6rem;margin:.5rem 0;background:#fbfdff;cursor:grab}
+.paleta .nota{font-size:12px;color:#475569;margin-top:.6rem}
+
+/* Lienzo */
+.zona{position:relative;overflow:auto;background:#fff}
+#fondo{position:absolute;left:0;top:0;z-index:1}
+#capa_nodos{position:absolute;left:0;top:0;z-index:2}
+.nodo{position:absolute; background:#fff; border:1px solid var(--borde); border-radius:4px; min-width:160px; min-height:90px; box-shadow:0 2px 6px rgba(0,0,0,.05);}
+.nodo .cab{background:var(--grisE); padding:6px 8px; font-weight:700; border-bottom:1px solid var(--borde); cursor:text;}
+.nodo .cont{padding:8px}
+.nodo .seccion{margin-top:8px; padding-top:6px; border-top:1px solid #cfd6de}
+.nodo .item{line-height:18px; cursor:text; white-space:nowrap}
+.nodo .plus{display:inline-block; margin-top:6px; padding:2px 6px; border-radius:5px; border:1px solid #cfd6de; background:#fbfdff; font-size:12px; cursor:pointer}
+
+/* Conectores (labels de jsPlumb) */
+.jtk-overlay.lbl{font:12px system-ui; color:#0f172a; pointer-events:auto; background:rgba(255,255,255,.8); padding:0 4px; border-radius:4px; border:1px solid #e2e8f0}
+.jtk-overlay.card{font:12px system-ui; color:#0f172a; background:rgba(255,255,255,.8); border:1px solid #e2e8f0; border-radius:4px; padding:0 3px}
+
+/* Editor y borrar */
+#editor_inline{position:absolute;z-index:10;display:none;padding:.2rem .3rem;border:2px solid var(--azul);border-radius:.4rem;outline:none;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.08);font:13px system-ui}
+#btn_borrar_sel{position:absolute;z-index:10;display:none;border:none;background:#ef4444;color:#fff;border-radius:.5rem;padding:.2rem .4rem;font-size:12px;box-shadow:0 4px 10px rgba(0,0,0,.1);cursor:pointer}
+
+/* Panel */
+.panel{border-left:1px solid var(--grisB);background:#fff;padding:.6rem;overflow:auto}
+.panel .grupo{margin-bottom:1rem;font-size:13px}
+.panel .etq{font-size:12px;color:#334155;margin-bottom:.2rem;display:block}
+.panel input[type="text"],.panel select{width:100%;padding:.34rem .45rem;border:1px solid var(--grisB);border-radius:.45rem;font-size:13px;background:#fff;margin-bottom:.4rem}
+.panel .fila{display:flex;gap:.4rem;margin-top:.35rem;flex-wrap:wrap}
+.panel button{flex:1 1 auto;border:1px solid var(--grisB);background:#fbfdff;padding:.35rem .45rem;border-radius:.5rem;cursor:pointer}
+.panel button:hover{background:#f3f6fb}
+.panel .nota{display:block;color:#475569;font-size:11.5px;margin-top:.35rem}
+
+/* Ayuda */
+.ayuda{position:fixed;right:10px;bottom:10px;background:#0b57d0;color:#fff;border-radius:.7rem;padding:.35rem .6rem;font-size:12px;opacity:.9;pointer-events:none}
