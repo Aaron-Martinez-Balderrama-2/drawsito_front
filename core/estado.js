@@ -7,6 +7,12 @@
     zona: document.getElementById('zona_canvas'),
     lienzo: document.getElementById('lienzo'),
     editor: document.getElementById('editor_inline'),
+    editorArista: document.getElementById('editor_arista'),
+    ea_lbl: document.getElementById('ea_lbl'),
+    ea_o: document.getElementById('ea_o'),
+    ea_d: document.getElementById('ea_d'),
+    ea_sz: document.getElementById('ea_sz'),
+    ea_cancel: document.getElementById('ea_cancel'),
     btnBorrar: document.getElementById('btn_borrar_sel'),
     btnGuardar: document.getElementById('btn_guardar'),
     btnCargar: document.getElementById('btn_cargar'),
@@ -26,17 +32,31 @@
   const estado = (DS.estado = {
     token_csrf:'',
     nodos:[],
-    aristas:[],                  // {origenId,destinoId,etiqueta,card_o,card_d}
+    // arista: {origenId,destinoId,etiqueta,card_o,card_d,anc_o,anc_d,tam,puntos:[{x,y},...]}
+    aristas:[],
     id_sec:1,
-    seleccion:null,              // {tipo:'nodo'|'arista', id|idx}
+
+    // Selección (single y múltiple)
+    seleccion:null,               // {tipo:'nodo'|'arista', id|idx}
+    selNodos: new Set(),          // ids de nodos seleccionados (para grupo)
+
+    // Arrastres
     arrastrando:false, dx:0, dy:0,
-    redimensionando:false, handle:null, // 'nw','ne','sw','se'
-    conectando:false, nodo_origen:null,
+    redimensionando:false, handle:null,
+    conectando:false, nodo_origen:null, ancla_origen:null,
+    arrastrandoPuntoArista:null, // {idxArista, idxP}
+    arrastrandoExtremoArista:null, // {idxArista, extremo:'o'|'d'}
+    arrastreGrupo:null,          // {baseX,baseY, items:[{id,dx,dy}]}
+
+    // Marquee (selección por marco)
+    marcando:false,
+    marcoRect:null,              // {x1,y1,x2,y2} (coords canvas)
+
     p_mouse:{x:0,y:0},
     hover_conector:null, hover_nodoId:null,
-    H_TIT:28, FILA:18, MARG:0,
+    H_TIT:28, FILA:18, MARG:10,
     opciones:{ verGrid:true, verPagina:true, conectores:true, papel:'A4', orientacion:'v' },
-    mundo:{ w:1, h:1, bloqueW:1, bloqueH:1, margen:0, grid:20, zoom:1 }
+    mundo:{ w:1, h:1, bloqueW:1, bloqueH:1, margen:24, grid:20, zoom:1 }
   });
 
   // ---- Utilidades --------------------------------------------------------
@@ -92,4 +112,36 @@
   };
 
   util.existeArista = (o,d)=> estado.aristas.some(a=>a.origenId===o && a.destinoId===d);
+
+  util.anclaMasCercana = (n, x, y)=>{
+    const a = util.anclajes(n);
+    let mejor='arriba', dist=1e9;
+    for(const [k,p] of Object.entries(a)){
+      const d = Math.hypot(p.x-x, p.y-y);
+      if (d < dist){ dist=d; mejor=k; }
+    }
+    return mejor;
+  };
+
+  // Selección rectangular
+  util.recta = (x1,y1,x2,y2)=>{
+    const r={x:Math.min(x1,x2), y:Math.min(y1,y2)};
+    r.w=Math.abs(x2-x1); r.h=Math.abs(y2-y1);
+    return r;
+  };
+  util.intersecaNodo = (n, r)=>{
+    return !(n.x+n.ancho < r.x || n.x > r.x+r.w || n.y+n.alto < r.y || n.y > r.y+r.h);
+  };
+
+  util.bboxDeIds = (ids)=>{
+    let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity, vacio=true;
+    for(const n of estado.nodos){
+      if(ids.has(n.id)){
+        vacio=false;
+        x1=Math.min(x1,n.x); y1=Math.min(y1,n.y);
+        x2=Math.max(x2,n.x+n.ancho); y2=Math.max(y2,n.y+n.alto);
+      }
+    }
+    return vacio?null:{x:x1,y:y1,w:x2-x1,h:y2-y1};
+  };
 })();

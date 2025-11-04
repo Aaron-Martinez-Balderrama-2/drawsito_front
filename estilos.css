@@ -1,4 +1,4 @@
-:root{--f:13px;--grisB:#d9dde5;--grisE:#eef2f7;--azul:#0b57d0;--borde:#3b3b3b;--grid:#f1f5f9;--pag:#cbd5e1;}
+:root{--f:13px;--grisB:#d9dde5;--grisE:#e6e6e6;--azul:#0b57d0;}
 *{box-sizing:border-box;font-family:system-ui,Segoe UI,Arial;margin:0;padding:0}
 html,body{height:100%;background:#fafafa;color:#111}
 
@@ -15,26 +15,38 @@ html,body{height:100%;background:#fafafa;color:#111}
 /* Paleta */
 .paleta{border-right:1px solid var(--grisB);background:#fff;padding:.6rem;overflow:auto}
 .paleta .pieza{user-select:none;border:1px dashed #c9d3e5;padding:.5rem;border-radius:.6rem;margin:.5rem 0;background:#fbfdff;cursor:grab}
+.paleta .pieza:active{background:#f4f8ff;cursor:grabbing}
 .paleta .nota{font-size:12px;color:#475569;margin-top:.6rem}
 
 /* Lienzo */
 .zona{position:relative;overflow:auto;background:#fff}
-#fondo{position:absolute;left:0;top:0;z-index:1}
-#capa_nodos{position:absolute;left:0;top:0;z-index:2}
-.nodo{position:absolute; background:#fff; border:1px solid var(--borde); border-radius:4px; min-width:160px; min-height:90px; box-shadow:0 2px 6px rgba(0,0,0,.05);}
-.nodo .cab{background:var(--grisE); padding:6px 8px; font-weight:700; border-bottom:1px solid var(--borde); cursor:text;}
-.nodo .cont{padding:8px}
-.nodo .seccion{margin-top:8px; padding-top:6px; border-top:1px solid #cfd6de}
-.nodo .item{line-height:18px; cursor:text; white-space:nowrap}
-.nodo .plus{display:inline-block; margin-top:6px; padding:2px 6px; border-radius:5px; border:1px solid #cfd6de; background:#fbfdff; font-size:12px; cursor:pointer}
+#lienzo{display:block;background:#fff}
+#editor_inline{position:absolute;z-index:5;display:none;padding:.2rem .3rem;border:2px solid var(--azul);border-radius:.4rem;outline:none;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.08);font:13px system-ui}
 
-/* Conectores (labels de jsPlumb) */
-.jtk-overlay.lbl{font:12px system-ui; color:#0f172a; pointer-events:auto; background:rgba(255,255,255,.8); padding:0 4px; border-radius:4px; border:1px solid #e2e8f0}
-.jtk-overlay.card{font:12px system-ui; color:#0f172a; background:rgba(255,255,255,.8); border:1px solid #e2e8f0; border-radius:4px; padding:0 3px}
+/* Botón eliminar: AHORA anclado al viewport para seguir al nodo aún con scroll */
+#btn_borrar_sel{
+  position:fixed;          /* ← antes era absolute */
+  z-index:9;               /* por encima de canvas y editor inline */
+  display:none;
+  border:none;
+  background:#ef4444;
+  color:#fff;
+  border-radius:.5rem;
+  padding:.2rem .4rem;
+  font-size:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
+  cursor:pointer
+}
 
-/* Editor y borrar */
-#editor_inline{position:absolute;z-index:10;display:none;padding:.2rem .3rem;border:2px solid var(--azul);border-radius:.4rem;outline:none;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.08);font:13px system-ui}
-#btn_borrar_sel{position:absolute;z-index:10;display:none;border:none;background:#ef4444;color:#fff;border-radius:.5rem;padding:.2rem .4rem;font-size:12px;box-shadow:0 4px 10px rgba(0,0,0,.1);cursor:pointer}
+/* Editor de aristas (mini popover) */
+.pop{position:absolute;z-index:6;display:none;background:#fff;border:1px solid var(--grisB);border-radius:.6rem;padding:.5rem .6rem;box-shadow:0 10px 30px rgba(0,0,0,.10);min-width:280px}
+.pop .fila{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.35rem}
+.pop .fila2{display:flex;gap:.5rem;margin-bottom:.35rem}
+.pop label{font-size:11.5px;color:#334155}
+.pop input{width:100%;padding:.34rem .45rem;border:1px solid var(--grisB);border-radius:.45rem;font-size:13px;background:#fff}
+.pop .acciones{display:flex;gap:.5rem;justify-content:flex-end}
+.pop button{border:1px solid var(--grisB);background:#fbfdff;padding:.35rem .6rem;border-radius:.5rem;cursor:pointer}
+.pop button:hover{background:#f3f6fb}
 
 /* Panel */
 .panel{border-left:1px solid var(--grisB);background:#fff;padding:.6rem;overflow:auto}

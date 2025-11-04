@@ -2,15 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
-  <title>Drawsito UML Pro</title>
+  <title>Drawsito UML</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link rel="stylesheet" href="estilos.css"/>
-
-  <!-- Librerías (mínimas y vía CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/konva@9/konva.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@jsplumb/browser-ui@6/dist/js/jsplumb.browser-ui.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.7/dist/floating-ui.dom.umd.min.js"></script>
 </head>
 <body>
 <header class="barra">
@@ -19,7 +13,6 @@
   <button id="btn_cargar">Cargar</button>
   <input id="inp_id" placeholder="id a cargar (p.ej. dibujo-20251021-210000)" size="34"/>
   <span class="sep"></span>
-
   <label class="zoomlbl">Zoom
     <select id="sel_zoom">
       <option>50%</option><option>75%</option><option selected>100%</option>
@@ -34,16 +27,45 @@
     <h4>Paleta</h4>
     <div class="pieza" draggable="true" data-tipo="clase">🧱 Clase UML</div>
     <div class="pieza" draggable="true" data-tipo="texto">🔖 Texto</div>
-    <p class="nota">Arrastra al lienzo. Doble clic para editar. Arrastra desde bordes para redimensionar. Conecta arrastrando desde el borde de una clase a otra.</p>
+    <p class="nota">Arrastra una pieza al lienzo. Doble clic para editar. Enter agrega filas. Arrastra desde los círculos azules para conectar.</p>
   </aside>
 
-  <!-- Lienzo: fondo (Konva) + capa de nodos DOM (jsPlumb/Interact) -->
+  <!-- Lienzo -->
   <section class="zona" id="zona_canvas">
-    <div id="fondo"></div>
-    <div id="capa_nodos"></div>
+    <canvas id="lienzo"></canvas>
 
-    <!-- Editor inline y borrar -->
+    <!-- Edición inline de títulos/filas -->
     <input id="editor_inline"/>
+
+    <!-- Editor flotante de aristas -->
+    <form id="editor_arista" class="pop" autocomplete="off">
+      <div class="fila">
+        <label>Etiqueta</label>
+        <input type="text" id="ea_lbl" placeholder="relación (opcional)"/>
+      </div>
+      <div class="fila2">
+        <div>
+          <label>Origen</label>
+          <input type="text" id="ea_o" placeholder="1, 0..1, 0..*, *..*, etc."/>
+        </div>
+        <div>
+          <label>Destino</label>
+          <input type="text" id="ea_d" placeholder="1, 0..1, 0..*, *..*, etc."/>
+        </div>
+      </div>
+      <div class="fila2">
+        <div style="width:140px">
+          <label>Tamaño texto</label>
+          <input type="number" id="ea_sz" min="10" max="24" step="1" value="12"/>
+        </div>
+        <div class="nota" style="align-self:end">Afecta etiqueta y cardinalidades</div>
+      </div>
+      <div class="acciones">
+        <button type="submit">OK</button>
+        <button type="button" id="ea_cancel">Cancelar</button>
+      </div>
+    </form>
+
     <button id="btn_borrar_sel">🗑 Eliminar</button>
   </section>
 
@@ -52,9 +74,9 @@
     <h4>Opciones</h4>
     <div class="grupo">
       <label><input type="checkbox" id="opt_ver_grid" checked> Cuadrícula</label><br/>
-      <label><input type="checkbox" id="opt_ver_pag" checked> Vista de la página</label>
+      <label><input type="checkbox" id="opt_ver_pag" checked> Vista de la página</label><br/>
+      <label><input type="checkbox" id="opt_conectores" checked> Puntos de conexión</label>
     </div>
-
     <div class="grupo">
       <div class="etq">Tamaño del papel</div>
       <select id="sel_papel">
@@ -65,7 +87,7 @@
         <label><input type="radio" name="ori" value="v" checked> Vertical</label>
         <label><input type="radio" name="ori" value="h"> Horizontal</label>
       </div>
-      <small class="nota">La hoja se expande/contrae por bloques según contenido.</small>
+      <small class="nota">La hoja se expande/contrae por bloques según el contenido.</small>
     </div>
 
     <hr/>
@@ -77,12 +99,14 @@
         <button id="btn_add_atr">+ Atributo</button>
         <button id="btn_add_met">+ Método</button>
       </div>
-      <small class="nota">Doble clic para editar; Enter agrega nuevas filas; vacío para eliminar.</small>
+      <small class="nota">Consejo: doble clic para editar. Vacío + Enter elimina fila.</small>
     </div>
   </aside>
 </main>
 
-<div class="ayuda">Ctrl + rueda = Zoom • Backspace/Del elimina • Doble clic en línea = editar etiqueta/cardinalidad</div>
+<div class="ayuda">
+  Ctrl + rueda = Zoom • Backspace/Del elimina • Doble clic en línea = editar etiqueta/cardinalidades
+</div>
 
 <script>window.DRAWSITO_CONFIG={ api:"/proyecto/drawsito_back/api.php" };</script>
 <script src="core/estado.js"></script>

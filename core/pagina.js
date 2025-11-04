@@ -13,7 +13,7 @@
     const W = estado.opciones.orientacion==='h' ? base.h : base.w;
     const H = estado.opciones.orientacion==='h' ? base.w : base.h;
     estado.mundo.bloqueW=W; estado.mundo.bloqueH=H;
-    pagina.recalcularTamMundo(true);
+    pagina.recalcularTamMundo(true);   // <-- fuerza al menos 1 hoja visible
   };
 
   pagina.recalcularTamMundo = (forzarMin=false)=>{
@@ -61,7 +61,7 @@
 
   pagina.posEnZona = (x,y)=>({ left:x*estado.mundo.zoom - dom.zona.scrollLeft, top:y*estado.mundo.zoom - dom.zona.scrollTop });
 
-  // Expansión automática cuando se mueve un nodo
+  // Expansión automática
   pagina.expandirSiNecesario = (n)=>{
     let cambio=false; const m=estado.mundo, M=m.margen;
     if (n.x+n.ancho+M > m.w){ m.w += m.bloqueW; cambio=true; }
@@ -71,7 +71,7 @@
     if (cambio) pagina.setTamCanvas();
   };
 
-  // Contracción cuando sobran hojas (llamar tras borrar/soltar)
+  // Contracción cuando sobran hojas
   pagina.contraerSiCabe = ()=> pagina.recalcularTamMundo(false);
 
   pagina.centrarVista = ()=>{
