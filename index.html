@@ -5,13 +5,28 @@
   <title>Drawsito UML</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link rel="stylesheet" href="estilos.css"/>
+  <style>
+    /* Mini modal auth */
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:50}
+    .modal .box{background:#fff;border:1px solid #d9dde5;border-radius:.8rem;padding:1rem;min-width:300px;max-width:360px}
+    .modal .box h3{margin-bottom:.5rem}
+    .modal .box label{display:block;font-size:12px;color:#334155;margin:.35rem 0 .2rem}
+    .modal .box input{width:100%;padding:.4rem .5rem;border:1px solid #d9dde5;border-radius:.45rem}
+    .modal .box .fila{display:flex;gap:.5rem;margin-top:.6rem}
+    .modal .box button{flex:1 1 auto;border:1px solid #d9dde5;background:#fbfdff;padding:.45rem .6rem;border-radius:.5rem;cursor:pointer}
+    .pill{font-size:12px;color:#475569;margin-left:.35rem}
+  </style>
 </head>
 <body>
 <header class="barra">
   <strong>Drawsito</strong>
+
   <button id="btn_guardar">Guardar</button>
   <button id="btn_cargar">Cargar</button>
-  <input id="inp_id" placeholder="id a cargar (p.ej. dibujo-20251021-210000)" size="34"/>
+  <input id="inp_id" placeholder="id a cargar / sala (p.ej. dibujo-20251021-210000)" size="34"/>
+  <button id="btn_colaborar" title="Unirse a la sala con este ID">Colaborar</button>
+  <span id="lbl_colab" class="pill">— offline</span>
+
   <span class="sep"></span>
   <label class="zoomlbl">Zoom
     <select id="sel_zoom">
@@ -19,10 +34,22 @@
       <option>125%</option><option>150%</option><option>200%</option>
     </select>
   </label>
+
+  <span class="sep"></span>
+  <button id="btn_generar" title="Genera ZIP (Spring Boot + Flutter + SQL)">Generar proyecto</button>
+
+  <span class="sep"></span>
+  <span id="auth_area" class="pill">No has iniciado sesión
+    <button id="btn_login">Entrar</button>
+    <button id="btn_reg">Registrarse</button>
+  </span>
+  <span id="auth_logueado" class="pill" style="display:none">
+    Hola, <b id="auth_alias">—</b>
+    <button id="btn_logout">Salir</button>
+  </span>
 </header>
 
 <main class="principal">
-  <!-- Paleta -->
   <aside class="paleta">
     <h4>Paleta</h4>
     <div class="pieza" draggable="true" data-tipo="clase">🧱 Clase UML</div>
@@ -30,46 +57,24 @@
     <p class="nota">Arrastra una pieza al lienzo. Doble clic para editar. Enter agrega filas. Arrastra desde los círculos azules para conectar.</p>
   </aside>
 
-  <!-- Lienzo -->
   <section class="zona" id="zona_canvas">
     <canvas id="lienzo"></canvas>
-
-    <!-- Edición inline de títulos/filas -->
     <input id="editor_inline"/>
-
-    <!-- Editor flotante de aristas -->
     <form id="editor_arista" class="pop" autocomplete="off">
-      <div class="fila">
-        <label>Etiqueta</label>
-        <input type="text" id="ea_lbl" placeholder="relación (opcional)"/>
+      <div class="fila"><label>Etiqueta</label><input type="text" id="ea_lbl" placeholder="relación (opcional)"/></div>
+      <div class="fila2">
+        <div><label>Origen</label><input type="text" id="ea_o" placeholder="1, 0..1, 0..*, *..*"/></div>
+        <div><label>Destino</label><input type="text" id="ea_d" placeholder="1, 0..1, 0..*, *..*"/></div>
       </div>
       <div class="fila2">
-        <div>
-          <label>Origen</label>
-          <input type="text" id="ea_o" placeholder="1, 0..1, 0..*, *..*, etc."/>
-        </div>
-        <div>
-          <label>Destino</label>
-          <input type="text" id="ea_d" placeholder="1, 0..1, 0..*, *..*, etc."/>
-        </div>
-      </div>
-      <div class="fila2">
-        <div style="width:140px">
-          <label>Tamaño texto</label>
-          <input type="number" id="ea_sz" min="10" max="24" step="1" value="12"/>
-        </div>
+        <div style="width:140px"><label>Tamaño texto</label><input type="number" id="ea_sz" min="10" max="24" step="1" value="12"/></div>
         <div class="nota" style="align-self:end">Afecta etiqueta y cardinalidades</div>
       </div>
-      <div class="acciones">
-        <button type="submit">OK</button>
-        <button type="button" id="ea_cancel">Cancelar</button>
-      </div>
+      <div class="acciones"><button type="submit">OK</button><button type="button" id="ea_cancel">Cancelar</button></div>
     </form>
-
     <button id="btn_borrar_sel">🗑 Eliminar</button>
   </section>
 
-  <!-- Panel derecho -->
   <aside class="panel">
     <h4>Opciones</h4>
     <div class="grupo">
@@ -89,30 +94,140 @@
       </div>
       <small class="nota">La hoja se expande/contrae por bloques según el contenido.</small>
     </div>
-
     <hr/>
     <div id="panel_clase" class="grupo" style="display:none">
       <h5>Clase UML</h5>
       <label class="etq">Nombre</label>
       <input type="text" id="clase_titulo" placeholder="Nombre de la clase"/>
-      <div class="fila">
-        <button id="btn_add_atr">+ Atributo</button>
-        <button id="btn_add_met">+ Método</button>
-      </div>
+      <div class="fila"><button id="btn_add_atr">+ Atributo</button><button id="btn_add_met">+ Método</button></div>
       <small class="nota">Consejo: doble clic para editar. Vacío + Enter elimina fila.</small>
     </div>
   </aside>
 </main>
 
-<div class="ayuda">
-  Ctrl + rueda = Zoom • Backspace/Del elimina • Doble clic en línea = editar etiqueta/cardinalidades
+<div class="ayuda">Ctrl + rueda = Zoom • Backspace/Del elimina • Doble clic en línea = editar etiqueta/cardinalidades</div>
+
+<!-- Modales Auth -->
+<div id="modal_login" class="modal">
+  <div class="box">
+    <h3>Iniciar sesión</h3>
+    <label>Email</label><input type="email" id="lg_email">
+    <label>Contraseña</label><input type="password" id="lg_pass">
+    <div class="fila">
+      <button id="btn_login_ok">Entrar</button>
+      <button onclick="document.getElementById('modal_login').style.display='none'">Cancelar</button>
+    </div>
+  </div>
 </div>
 
-<script>window.DRAWSITO_CONFIG={ api:"/proyecto/drawsito_back/api.php" };</script>
+<div id="modal_reg" class="modal">
+  <div class="box">
+    <h3>Crear cuenta</h3>
+    <label>Alias</label><input type="text" id="rg_alias">
+    <label>Email</label><input type="email" id="rg_email">
+    <label>Contraseña</label><input type="password" id="rg_p1">
+    <label>Repite contraseña</label><input type="password" id="rg_p2">
+    <div class="fila">
+      <button id="btn_reg_ok">Registrar</button>
+      <button onclick="document.getElementById('modal_reg').style.display='none'">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.DRAWSITO_CONFIG = {
+    api:  "/proyecto/drawsito_back/api.php",
+    rt:   "/proyecto/drawsito_back/tiempo_real.php",
+    ws:   "ws://localhost:8088",             <!-- ← NUEVO -->
+    auth: "/proyecto/drawsito_back/auth.php"
+  };
+  window.DRAWSITO_SESSION = { token:'', user:null };
+</script>
+
 <script src="core/estado.js"></script>
 <script src="core/pagina.js"></script>
 <script src="core/render.js"></script>
+<script src="core/colaboracion.js"></script>
 <script src="core/interaccion.js"></script>
 <script src="app.js"></script>
+
+<script>
+// ======== Auth UI (simple) ===============================================
+(async function authInit(){
+  // whoami entrega también token CSRF reutilizable
+  try{
+    const r = await fetch(DRAWSITO_CONFIG.auth+'?accion=whoami');
+    const d = await r.json();
+    if (d.ok){ DRAWSITO_SESSION.token=d.token; DRAWSITO_SESSION.user=d.user||null; }
+  }catch(_){}
+  pintarAuth();
+})();
+
+function pintarAuth(){
+  const u = DRAWSITO_SESSION.user;
+  document.getElementById('auth_area').style.display = u? 'none':'inline';
+  document.getElementById('auth_logueado').style.display = u? 'inline':'none';
+  if (u){ document.getElementById('auth_alias').textContent = u.alias || ('u#'+u.id); }
+}
+
+document.getElementById('btn_login').onclick = ()=> (document.getElementById('modal_login').style.display='flex');
+document.getElementById('btn_reg').onclick   = ()=> (document.getElementById('modal_reg').style.display='flex');
+
+document.getElementById('btn_login_ok').onclick = async ()=>{
+  const email = document.getElementById('lg_email').value.trim();
+  const pass  = document.getElementById('lg_pass').value;
+  const fd = new FormData(); fd.append('accion','login'); fd.append('email',email); fd.append('pass',pass); fd.append('token', DRAWSITO_SESSION.token);
+  const r = await fetch(DRAWSITO_CONFIG.auth, {method:'POST', body:fd});
+  const d = await r.json();
+  if(!d.ok) return alert(d.msg||'Error');
+  DRAWSITO_SESSION.user=d.user; document.getElementById('modal_login').style.display='none'; pintarAuth();
+};
+
+document.getElementById('btn_reg_ok').onclick = async ()=>{
+  const alias = document.getElementById('rg_alias').value.trim();
+  const email = document.getElementById('rg_email').value.trim();
+  const p1    = document.getElementById('rg_p1').value;
+  const p2    = document.getElementById('rg_p2').value;
+  const fd = new FormData();
+  fd.append('accion','registrar'); fd.append('alias',alias); fd.append('email',email);
+  fd.append('pass1',p1); fd.append('pass2',p2); fd.append('token', DRAWSITO_SESSION.token);
+  const r = await fetch(DRAWSITO_CONFIG.auth, {method:'POST', body:fd});
+  const d = await r.json();
+  if(!d.ok) return alert(d.msg||'Error');
+  DRAWSITO_SESSION.user=d.user; document.getElementById('modal_reg').style.display='none'; pintarAuth();
+};
+
+document.getElementById('btn_logout').onclick = async ()=>{
+  const fd = new FormData(); fd.append('accion','logout'); fd.append('token', DRAWSITO_SESSION.token);
+  const r = await fetch(DRAWSITO_CONFIG.auth, {method:'POST', body:fd});
+  const d = await r.json();
+  if(d.ok){ DRAWSITO_SESSION.user=null; pintarAuth(); }
+};
+
+// Botón "Colaborar": une a la sala usando el ID (igual que antes)
+document.getElementById('btn_colaborar').onclick = async ()=>{
+  const id = (document.getElementById('inp_id').value||'').trim();
+  if (!id) return alert('Escribe un ID de sala (usa el mismo que el de guardado)');
+  try{
+    await DS.collab.unirse(id);
+    document.getElementById('lbl_colab').textContent = 'Sala: '+id+' (sincronizando)';
+  }catch(e){ alert('No se pudo unir a la sala'); }
+};
+
+// Sobrescribir guardar para enviar token CSRF de sesión ya establecido
+document.getElementById('btn_guardar').addEventListener('click', ()=>{}); // handler real está en interaccion.js, usa token global
+</script>
+
+<!-- Generar proyecto (ZIP) mantiene lógica previa -->
+<script>
+(function(){
+  const btn = document.getElementById('btn_generar');
+  btn.addEventListener('click', ()=>{
+    const id = (document.getElementById('inp_id').value||'').trim();
+    if (!id) { alert('Primero guarda el diagrama. Usa ese ID aquí.'); return; }
+    window.location.href = "/proyecto/drawsito_back/generar_proyecto.php?id="+encodeURIComponent(id);
+  });
+})();
+</script>
 </body>
 </html>

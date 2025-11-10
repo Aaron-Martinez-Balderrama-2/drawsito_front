@@ -21,12 +21,26 @@ html,body{height:100%;background:#fafafa;color:#111}
 /* Lienzo */
 .zona{position:relative;overflow:auto;background:#fff}
 #lienzo{display:block;background:#fff}
-#editor_inline{position:absolute;z-index:5;display:none;padding:.2rem .3rem;border:2px solid var(--azul);border-radius:.4rem;outline:none;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.08);font:13px system-ui}
 
-/* Botón eliminar: AHORA anclado al viewport para seguir al nodo aún con scroll */
+/* v1.1.2: los editores pasan a position:fixed (anclados a la ventana),
+   así no se desalinean entre hojas ni con scroll */
+#editor_inline{
+  position:fixed;           /* antes: absolute */
+  z-index:50;
+  display:none;
+  padding:.2rem .3rem;
+  border:2px solid var(--azul);
+  border-radius:.4rem;
+  outline:none;
+  background:#fff;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+  font:13px system-ui
+}
+
+/* Botón eliminar ya estaba fijo */
 #btn_borrar_sel{
-  position:fixed;          /* ← antes era absolute */
-  z-index:9;               /* por encima de canvas y editor inline */
+  position:fixed;
+  z-index:49;
   display:none;
   border:none;
   background:#ef4444;
@@ -38,8 +52,18 @@ html,body{height:100%;background:#fafafa;color:#111}
   cursor:pointer
 }
 
-/* Editor de aristas (mini popover) */
-.pop{position:absolute;z-index:6;display:none;background:#fff;border:1px solid var(--grisB);border-radius:.6rem;padding:.5rem .6rem;box-shadow:0 10px 30px rgba(0,0,0,.10);min-width:280px}
+/* Editor de aristas (mini popover) – ahora también fixed */
+.pop{
+  position:fixed;           /* antes: absolute */
+  z-index:50;
+  display:none;
+  background:#fff;
+  border:1px solid var(--grisB);
+  border-radius:.6rem;
+  padding:.5rem .6rem;
+  box-shadow:0 10px 30px rgba(0,0,0,.10);
+  min-width:280px
+}
 .pop .fila{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.35rem}
 .pop .fila2{display:flex;gap:.5rem;margin-bottom:.35rem}
 .pop label{font-size:11.5px;color:#334155}

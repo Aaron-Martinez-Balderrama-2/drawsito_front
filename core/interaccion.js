@@ -28,6 +28,44 @@
     return (mejor.idx >= 0 && mejor.d < 8) ? mejor : null;
   }
 
+  // ============= Reubicación de overlays (fixed) en scroll/resize =========
+  function reubicarOverlays(){
+    // editor inline
+    if (dom.editor.style.display !== "none") {
+      const id = parseInt(dom.editor.dataset.nodo||'0',10);
+      const n = DS.util.buscarNodoPorId(id);
+      if (n){
+        let x = n.x + 8, y;
+        if (n.tipo === "clase") {
+          const s = DS.util.layoutClase(n);
+          const tipo = dom.editor.dataset.tipo;
+          const idx  = dom.editor.dataset.idx===''? null : parseInt(dom.editor.dataset.idx,10);
+          if (tipo === "titulo") y = n.y + 6;
+          if (tipo === "atr")    y = s.yAtr + idx * estado.FILA + 2;
+          if (tipo === "met")    y = s.yMet + idx * estado.FILA + 2;
+        } else {
+          y = n.y + 6;
+        }
+        const p = pagina.posEnViewport(x, y);
+        dom.editor.style.left = p.left + "px";
+        dom.editor.style.top  = p.top  + "px";
+        // ancho coherente con zoom
+        const w = (n.ancho - 16) * (estado.mundo.zoom||1);
+        dom.editor.style.width = Math.max(80, Math.round(w)) + "px";
+      }
+    }
+    // editor arista
+    if (dom.editorArista.style.display !== "none") {
+      const cx = parseFloat(dom.editorArista.dataset.cx || '0');
+      const cy = parseFloat(dom.editorArista.dataset.cy || '0');
+      const p = pagina.posEnViewport(cx + 6, cy - 6);
+      dom.editorArista.style.left = p.left + "px";
+      dom.editorArista.style.top  = p.top  + "px";
+    }
+  }
+  dom.zona.addEventListener('scroll', reubicarOverlays);
+  window.addEventListener('resize', reubicarOverlays);
+
   // === Mouse move =========================================================
   dom.lienzo.addEventListener("mousemove", (e) => {
     const { x, y } = pagina.aCanvas(e);
@@ -83,6 +121,7 @@
         if (n2){
           n2.x = x - it.dx; n2.y = y - it.dy;
           pagina.expandirSiNecesario(n2);
+          DS.emitMoveNode(n2.id, n2.x, n2.y);
         }
       }
       render.dibujar();
@@ -91,7 +130,11 @@
 
     if (estado.arrastrando && estado.seleccion?.tipo === 'nodo') {
       const no = util.buscarNodoPorId(estado.seleccion.id);
-      if (no) { no.x = x - estado.dx; no.y = y - estado.dy; pagina.expandirSiNecesario(no); }
+      if (no) {
+        no.x = x - estado.dx; no.y = y - estado.dy;
+        pagina.expandirSiNecesario(no);
+        DS.emitMoveNode(no.id, no.x, no.y);
+      }
     }
 
     if (estado.redimensionando && estado.seleccion?.tipo === 'nodo') {
@@ -105,6 +148,7 @@
           no.alto = Math.max(no.minH, (no.y + no.alto) - y); no.y = ny; }
         DS.util.layoutClase(no);
         pagina.expandirSiNecesario(no);
+        DS.emitResizeNode(no.id, no.ancho, no.alto);
       }
     }
 
@@ -152,6 +196,7 @@
           const a = estado.aristas[pick.idx];
           a.puntos = a.puntos || [];
           a.puntos.splice(pick.seg+1, 0, {x:pick.cp.x, y:pick.cp.y});
+          DS.emitUpdateEdge(a.id, {puntos: a.puntos});
         }
         render.dibujar();
         return;
@@ -222,8 +267,16 @@
   window.addEventListener("mouseup", (e) => {
     const { x, y } = pagina.aCanvas(e);
 
-    if (estado.arrastrandoPuntoArista){ estado.arrastrandoPuntoArista=null; render.dibujar(); return; }
-    if (estado.arrastrandoExtremoArista){ estado.arrastrandoExtremoArista=null; render.dibujar(); return; }
+    if (estado.arrastrandoPuntoArista){
+      const {idxArista} = estado.arrastrandoPuntoArista;
+      const a = estado.aristas[idxArista]; if (a) DS.emitUpdateEdge(a.id, {puntos: a.puntos||[]});
+      estado.arrastrandoPuntoArista=null; render.dibujar(); return;
+    }
+    if (estado.arrastrandoExtremoArista){
+      const {idxArista} = estado.arrastrandoExtremoArista;
+      const a = estado.aristas[idxArista]; if (a) DS.emitUpdateEdge(a.id, {anc_o:a.anc_o, anc_d:a.anc_d});
+      estado.arrastrandoExtremoArista=null; render.dibujar(); return;
+    }
 
     if (estado.conectando && estado.nodo_origen) {
       const origen = estado.nodo_origen;
@@ -231,36 +284,45 @@
       if (n && n.id !== origen.id) {
         const ladoD = util.anclaMasCercana(n, x, y);
         if (!util.existeArista(origen.id, n.id)){
-          estado.aristas.push({ origenId: origen.id, destinoId: n.id, anc_o: estado.ancla_origen, anc_d: ladoD, tam:12, puntos:[] });
+          const edge = { id: Date.now()+Math.floor(Math.random()*1000), origenId: origen.id, destinoId: n.id, anc_o: estado.ancla_origen, anc_d: ladoD, tam:12, puntos:[] };
+          estado.aristas.push(edge);
+          DS.emitAddEdge(edge);
         }
       } else if (!n) {
-        const nn = util.porDefectoClase(x - 120, y - 60);
+        const nn = DS.util.porDefectoClase(x - 120, y - 60);
         DS.util.layoutClase(nn);
         estado.nodos.push(nn);
+        DS.emitAddNode(nn);
         const ladoD = util.ladoPreferido(nn, origen);
         if (!util.existeArista(origen.id, nn.id)){
-          estado.aristas.push({ origenId: origen.id, destinoId: nn.id, anc_o: estado.ancla_origen, anc_d: ladoD, tam:12, puntos:[] });
+          const edge = { id: Date.now()+Math.floor(Math.random()*1000), origenId: origen.id, destinoId: nn.id, anc_o: estado.ancla_origen, anc_d: ladoD, tam:12, puntos:[] };
+          estado.aristas.push(edge);
+          DS.emitAddEdge(edge);
         }
         estado.seleccion = { tipo: 'nodo', id: nn.id };
         estado.selNodos.clear(); estado.selNodos.add(nn.id);
         pagina.expandirSiNecesario(nn);
+        pagina.enfocarNodo(nn);        // v1.1.2: mantiene visible la nueva clase
       }
     }
 
     // Cerrar arrastres
+    if (estado.redimensionando && estado.seleccion?.tipo==='nodo'){
+      const no = DS.util.buscarNodoPorId(estado.seleccion.id);
+      if (no) DS.emitResizeNode(no.id, no.ancho, no.alto);
+    }
     estado.redimensionando = false; estado.handle = null;
     estado.conectando = false; estado.nodo_origen = null; estado.ancla_origen = null;
     estado.arrastrando = false;
-
     if (estado.arrastreGrupo){ estado.arrastreGrupo=null; }
 
     // Cerrar marquee: aplicar selección por marco
     if (estado.marcando && estado.marcoRect){
       estado.marcando=false;
-      const r = util.recta(estado.marcoRect.x1, estado.marcoRect.y1, x, y);
+      const r = DS.util.recta(estado.marcoRect.x1, estado.marcoRect.y1, x, y);
       estado.marcoRect=null;
       estado.selNodos.clear();
-      for (const n of estado.nodos){ if (util.intersecaNodo(n, r)) estado.selNodos.add(n.id); }
+      for (const n of estado.nodos){ if (DS.util.intersecaNodo(n, r)) estado.selNodos.add(n.id); }
       estado.seleccion = estado.selNodos.size===1 ? {tipo:'nodo', id:[...estado.selNodos][0]} : null;
     }
 
@@ -276,10 +338,10 @@
       estado.selNodos.clear(); estado.selNodos.add(n.id);
       estado.seleccion = { tipo: 'nodo', id: n.id };
       if (n.tipo === "clase") {
-        const z = render.indiceSeccion(n, x, y);
+        const z = DS.util.layoutClase(n) && DS.render.indiceSeccion(n, x, y);
         if (z.tipo === "titulo") abrirEditor(n, "titulo");
-        if (z.tipo === "atr") abrirEditor(n, "atr", z.idx);
-        if (z.tipo === "met") abrirEditor(n, "met", z.idx);
+        if (z.tipo === "atr")   abrirEditor(n, "atr", z.idx);
+        if (z.tipo === "met")   abrirEditor(n, "met", z.idx);
       } else abrirEditor(n, "texto");
       return;
     }
@@ -293,7 +355,9 @@
       const a=estado.aristas[estado.seleccion.idx];
       if (a?.puntos){
         for (let i=0;i<a.puntos.length;i++){
-          const p=a.puntos[i]; if (Math.hypot(x-p.x,y-p.y)<=7){ a.puntos.splice(i,1); render.dibujar(); return; }
+          const p=a.puntos[i]; if (Math.hypot(x-p.x,y-p.y)<=7){
+            a.puntos.splice(i,1); DS.emitUpdateEdge(a.id,{puntos:a.puntos}); render.dibujar(); return;
+          }
         }
       }
     }
@@ -308,20 +372,26 @@
   dom.btnBorrar.onclick = eliminarSeleccion;
 
   function eliminarSeleccion() {
-    // Si hay arista seleccionada, prioridad a arista
     if (estado.seleccion?.tipo === 'arista') {
       const i = estado.seleccion.idx;
-      if (i >= 0) estado.aristas.splice(i, 1);
+      const a = estado.aristas[i];
+      if (i >= 0) {
+        estado.aristas.splice(i, 1);
+        if (a) DS.emitDeleteEdge(a.id);
+      }
       estado.seleccion = null;
     } else if (estado.selNodos.size > 0) {
-      // Eliminar grupo de nodos y sus aristas
       const ids = new Set(estado.selNodos);
+      for (const a of [...estado.aristas]) if (ids.has(a.origenId) || ids.has(a.destinoId)){ DS.emitDeleteEdge(a.id); }
+      for (const n of [...estado.nodos]) if (ids.has(n.id)) DS.emitDeleteNode(n.id);
       estado.nodos = estado.nodos.filter(n => !ids.has(n.id));
       estado.aristas = estado.aristas.filter(a => !(ids.has(a.origenId) || ids.has(a.destinoId)));
       estado.selNodos.clear();
       estado.seleccion = null;
     } else if (estado.seleccion?.tipo === 'nodo') {
       const id = estado.seleccion.id;
+      for (const a of [...estado.aristas]) if (a.origenId===id || a.destinoId===id) DS.emitDeleteEdge(a.id);
+      DS.emitDeleteNode(id);
       estado.nodos = estado.nodos.filter(n => n.id !== id);
       estado.aristas = estado.aristas.filter(a => a.origenId !== id && a.destinoId !== id);
       estado.seleccion = null;
@@ -329,7 +399,7 @@
     pagina.contraerSiCabe(); render.dibujar();
   }
 
-  // === Editor inline (nodo/filas) ========================================
+  // === Editor inline (nodo/filas) – ahora usando posEnViewport ===========
   function abrirEditor(n, tipo, idx = null) {
     dom.editorArista.style.display = "none";
     let x = n.x + 8, y, w = n.ancho - 16, val = "";
@@ -339,10 +409,12 @@
       if (tipo === "atr")   { y = s.yAtr + idx * estado.FILA + 2; val = n.atributos[idx]; }
       if (tipo === "met")   { y = s.yMet + idx * estado.FILA + 2; val = n.metodos[idx]; }
     } else { y = n.y + 6; val = n.texto; }
-    const p = pagina.posEnZona(x, y);
+    const p = pagina.posEnViewport(x, y);
     dom.editor.style.left = p.left + "px"; dom.editor.style.top = p.top + "px";
-    dom.editor.style.width = w + "px"; dom.editor.dataset.nodo = n.id;
-    dom.editor.dataset.tipo = tipo; dom.editor.dataset.idx = idx != null ? idx : "";
+    dom.editor.style.width = Math.max(80, Math.round(w * (estado.mundo.zoom||1))) + "px";
+    dom.editor.dataset.nodo = n.id;
+    dom.editor.dataset.tipo = tipo;
+    dom.editor.dataset.idx  = idx != null ? idx : "";
     dom.editor.value = val; dom.editor.style.display = "block"; dom.editor.focus(); dom.editor.select();
   }
 
@@ -370,23 +442,27 @@
     if (!n) { dom.editor.style.display = "none"; return; }
 
     if (n.tipo === "clase") {
-      if (tipo === "titulo" && v !== "") n.titulo = v;
+      if (tipo === "titulo" && v !== "") { n.titulo = v; DS.emitSetTitle(n.id, v); }
       if (tipo === "atr") {
         const i = parseInt(dom.editor.dataset.idx);
-        if (v === "") { if (forzar && confirm("¿Borrar atributo?")) n.atributos.splice(i, 1); }
-        else n.atributos[i] = v; DS.util.layoutClase(n);
+        if (v === "") { if (forzar && confirm("¿Borrar atributo?")) { n.atributos.splice(i, 1); DS.emitDelAttr(n.id, i); } }
+        else { n.atributos[i] = v; DS.emitSetAttr(n.id, i, v); }
+        DS.util.layoutClase(n);
       }
       if (tipo === "met") {
         const i = parseInt(dom.editor.dataset.idx);
-        if (v === "") { if (forzar && confirm("¿Borrar método?")) n.metodos.splice(i, 1); }
-        else n.metodos[i] = v; DS.util.layoutClase(n);
+        if (v === "") { if (forzar && confirm("¿Borrar método?")) { n.metodos.splice(i, 1); DS.emitDelMethod(n.id, i); } }
+        else { n.metodos[i] = v; DS.emitSetMethod(n.id, i, v); }
+        DS.util.layoutClase(n);
       }
-    } else if (v !== "") n.texto = v;
+    } else if (v !== "") {
+      n.texto = v;
+    }
 
     dom.editor.style.display = "none"; render.dibujar();
   }
 
-  // === Editor de arista ===================================================
+  // === Editor de arista – posEnViewport + recordatorio de ancla ===========
   function abrirEditorArista(idx, cx, cy){
     dom.editor.style.display = "none";
     estado.seleccion = { tipo:'arista', idx };
@@ -396,7 +472,12 @@
     dom.ea_o.value   = a.card_o  || "";
     dom.ea_d.value   = a.card_d  || "";
     dom.ea_sz.value  = a.tam || 12;
-    const p = pagina.posEnZona(cx + 6, cy - 6);
+
+    // Guardamos el punto de anclaje (canvas coords) para reubicar en scroll/resize
+    dom.editorArista.dataset.cx = String(cx);
+    dom.editorArista.dataset.cy = String(cy);
+
+    const p = pagina.posEnViewport(cx + 6, cy - 6);
     const el = dom.editorArista;
     el.style.left = p.left + "px";
     el.style.top  = p.top  + "px";
@@ -413,10 +494,11 @@
     a.card_o   = dom.ea_o.value.trim()   || undefined;
     a.card_d   = dom.ea_d.value.trim()   || undefined;
     a.tam      = Math.max(10, Math.min(24, parseInt(dom.ea_sz.value||'12',10)));
+    DS.emitUpdateEdge(a.id, { etiqueta:a.etiqueta, card_o:a.card_o, card_d:a.card_d, tam:a.tam });
     dom.editorArista.style.display='none'; render.dibujar();
   });
 
-  // === Panel opciones =====================================================
+  // === Panel opciones (igual) ============================================
   dom.optGrid.onchange = ()=>{ estado.opciones.verGrid = dom.optGrid.checked; render.dibujar(); };
   dom.optPag.onchange  = ()=>{ estado.opciones.verPagina = dom.optPag.checked; render.dibujar(); };
   dom.optCon.onchange  = ()=>{ estado.opciones.conectores = dom.optCon.checked; render.dibujar(); };
@@ -427,31 +509,33 @@
     if (estado.selNodos.size!==1) return;
     const id = [...estado.selNodos][0];
     const n = DS.util.buscarNodoPorId(id);
-    if (n && n.tipo === "clase") { n.titulo = dom.inpTitulo.value; render.dibujar(); }
+    if (n && n.tipo === "clase") { n.titulo = dom.inpTitulo.value; DS.emitSetTitle(n.id, n.titulo); render.dibujar(); }
   };
   document.getElementById("btn_add_atr").onclick = ()=>{
     if (estado.selNodos.size!==1) return;
     const id = [...estado.selNodos][0];
     const n = DS.util.buscarNodoPorId(id);
-    if (n && n.tipo === "clase") { n.atributos.push("- nuevo"); DS.util.layoutClase(n); render.dibujar(); }
+    if (n && n.tipo === "clase") { n.atributos.push("- nuevo"); DS.util.layoutClase(n); DS.emitSetAttr(n.id, n.atributos.length-1, "- nuevo"); render.dibujar(); }
   };
   document.getElementById("btn_add_met").onclick = ()=>{
     if (estado.selNodos.size!==1) return;
     const id = [...estado.selNodos][0];
     const n = DS.util.buscarNodoPorId(id);
-    if (n && n.tipo === "clase") { n.metodos.push("+ nuevo()"); DS.util.layoutClase(n); render.dibujar(); }
+    if (n && n.tipo === "clase") { n.metodos.push("+ nuevo()"); DS.util.layoutClase(n); DS.emitSetMethod(n.id, n.metodos.length-1, "+ nuevo()"); render.dibujar(); }
   };
 
   // === Zoom + rueda =======================================================
   dom.selZoom.onchange = ()=>{
     const t = (dom.selZoom.value || dom.selZoom.options[dom.selZoom.selectedIndex].text || '100%').trim();
     const pct = parseInt(t, 10) || 100; pagina.hacerZoom(pct / 100);
+    reubicarOverlays();
   };
   dom.zona.addEventListener('wheel', (e)=>{
     if (!e.ctrlKey) return;
     e.preventDefault();
     const z = Math.max(.25, Math.min(3, DS.estado.mundo.zoom * (e.deltaY>0? 0.9 : 1.1)));
     pagina.hacerZoom(z, e.clientX, e.clientY);
+    reubicarOverlays();
   }, { passive:false });
 
   // Redibuja al hacer scroll para mantener overlays anclados
@@ -461,7 +545,7 @@
 
   // === Guardar / Cargar ===================================================
   dom.btnGuardar.onclick = async ()=>{
-    const paquete = { version: "1.0.11-marquee", nodos: estado.nodos, aristas: estado.aristas, meta: { guardado: new Date().toISOString() } };
+    const paquete = { version: "1.1.2-overlays-focus", nodos: estado.nodos, aristas: estado.aristas, meta: { guardado: new Date().toISOString() } };
     const body = new URLSearchParams({ accion: "guardar", token: estado.token_csrf, json: JSON.stringify(paquete) });
     const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
     const d = await r.json().catch(() => ({ ok: false }));
@@ -488,7 +572,14 @@
     let nuevo=null;
     if (tipo === "clase") { nuevo = DS.util.porDefectoClase(x - 120, y - 60); DS.util.layoutClase(nuevo); }
     if (tipo === "texto") { nuevo = DS.util.porDefectoTexto(x - 80, y - 20); }
-    if (nuevo){ estado.nodos.push(nuevo); estado.selNodos.clear(); estado.selNodos.add(nuevo.id); estado.seleccion={tipo:'nodo',id:nuevo.id}; pagina.expandirSiNecesario(nuevo); render.dibujar(); }
+    if (nuevo){
+      estado.nodos.push(nuevo);
+      DS.emitAddNode(nuevo);
+      estado.selNodos.clear(); estado.selNodos.add(nuevo.id); estado.seleccion={tipo:'nodo',id:nuevo.id};
+      pagina.expandirSiNecesario(nuevo);
+      pagina.enfocarNodo(nuevo);     // v1.1.2: foco tras crear por DnD
+      render.dibujar();
+    }
   });
   document.querySelectorAll(".pieza").forEach(el=>{
     el.addEventListener("dragstart", ev=> ev.dataTransfer.setData("text/plain", el.dataset.tipo));

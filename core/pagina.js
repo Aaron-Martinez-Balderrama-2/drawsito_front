@@ -13,7 +13,7 @@
     const W = estado.opciones.orientacion==='h' ? base.h : base.w;
     const H = estado.opciones.orientacion==='h' ? base.w : base.h;
     estado.mundo.bloqueW=W; estado.mundo.bloqueH=H;
-    pagina.recalcularTamMundo(true);   // <-- fuerza al menos 1 hoja visible
+    pagina.recalcularTamMundo(true);   // fuerza al menos 1 hoja visible
   };
 
   pagina.recalcularTamMundo = (forzarMin=false)=>{
@@ -54,14 +54,19 @@
     window.DS.render.dibujar();
   };
 
+  // Coordenadas pantalla (viewport) para ubicar overlays 'fixed'
+  pagina.posEnViewport = (x,y)=>{
+    const r=dom.lienzo.getBoundingClientRect(), z=estado.mundo.zoom||1;
+    return { left: Math.round(r.left + x*z), top: Math.round(r.top + y*z) };
+  };
+
+  // Coordenadas relativas a la zona (se mantiene por compatibilidad)
   pagina.aCanvas = ev=>{
     const r=dom.lienzo.getBoundingClientRect(), z=estado.mundo.zoom||1;
     return { x:(ev.clientX-r.left)/z, y:(ev.clientY-r.top)/z };
   };
 
-  pagina.posEnZona = (x,y)=>({ left:x*estado.mundo.zoom - dom.zona.scrollLeft, top:y*estado.mundo.zoom - dom.zona.scrollTop });
-
-  // Expansión automática
+  // Expansión automática (mismo comportamiento), la vista se corrige desde interaccion.js con enfocarNodo
   pagina.expandirSiNecesario = (n)=>{
     let cambio=false; const m=estado.mundo, M=m.margen;
     if (n.x+n.ancho+M > m.w){ m.w += m.bloqueW; cambio=true; }
@@ -78,5 +83,19 @@
     const m=estado.mundo, r=dom.lienzo.getBoundingClientRect();
     dom.zona.scrollLeft = Math.max(0, (m.w - r.width )/2);
     dom.zona.scrollTop  = Math.max(0, (m.h - r.height)/2);
+  };
+
+  // v1.1.2: centrar la vista en una clase (evita "salto a hoja vacía")
+  pagina.enfocarNodo = (n)=>{
+    const z = estado.mundo.zoom||1;
+    const vw = dom.zona.clientWidth, vh = dom.zona.clientHeight;
+    const cx = n.x + n.ancho/2;
+    const cy = n.y + n.alto /2;
+    const targetLeft = cx - (vw/(2*z));
+    const targetTop  = cy - (vh/(2*z));
+    const maxLeft = Math.max(0, estado.mundo.w - vw/z);
+    const maxTop  = Math.max(0, estado.mundo.h - vh/z);
+    dom.zona.scrollLeft = Math.max(0, Math.min(maxLeft, targetLeft));
+    dom.zona.scrollTop  = Math.max(0, Math.min(maxTop , targetTop ));
   };
 })();
