@@ -33,7 +33,7 @@
       else dibTexto(ctx,n);
     }
 
-    // Textos/handles de aristas
+    // Textos/handles de aristas (multiplicidad / roles / calificadores / etiqueta)
     for(const a of estado.aristas) dibTextosYHandlesArista(ctx,a);
 
     // Vista de conexión en vivo
@@ -135,13 +135,26 @@
 
   function dibLineaArista(ctx,a){
     const g=puntosArista(a); if(!g) return;
-    const {pts}=g;
+    const {pts,pO,pD}=g;
+
     ctx.strokeStyle='#111'; ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
     for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
     ctx.stroke();
 
-    const p1=pts[pts.length-2], p2=pts[pts.length-1];
+    // Navegabilidad
+    const nav = a.nav || 'o2d';
+    if (nav==='o2d' || nav==='both'){
+      const p1=pts[pts.length-2], p2=pts[pts.length-1];
+      drawArrow(ctx, p1, p2);
+    }
+    if (nav==='d2o' || nav==='both'){
+      const p1=pts[1], p2=pts[0];
+      drawArrow(ctx, p1, p2);
+    }
+  }
+
+  function drawArrow(ctx, p1, p2){
     const ang=Math.atan2(p2.y-p1.y, p2.x-p1.x), len=10;
     ctx.beginPath();
     ctx.moveTo(p2.x, p2.y);
@@ -154,13 +167,27 @@
     const g=puntosArista(a); if(!g) return;
     const {pts,pO,pD,ladoO,ladoD}=g;
     const tam = Math.max(10, Math.min(24, a.tam || 12));
-
     ctx.font = tam+'px system-ui'; ctx.fillStyle='#0f172a';
+
+    // Multiplicidades
     const posO = offsetCard(pO, ladoO, tam);
     const posD = offsetCard(pD, ladoD, tam);
     if (a.card_o){ drawLabel(ctx, a.card_o, posO.x, posO.y, tam); }
     if (a.card_d){ drawLabel(ctx, a.card_d, posD.x, posD.y, tam); }
 
+    // Rol (cerca del extremo, desplazado tangencialmente)
+    const rO = offsetRole(pO, ladoO, tam);
+    const rD = offsetRole(pD, ladoD, tam);
+    if (a.role_o){ drawSoftText(ctx, a.role_o, rO.x, rO.y, tam); }
+    if (a.role_d){ drawSoftText(ctx, a.role_d, rD.x, rD.y, tam); }
+
+    // Calificador (pequeño recuadro con [texto] pegado al extremo)
+    const qO = offsetQual(pO, ladoO, tam);
+    const qD = offsetQual(pD, ladoD, tam);
+    if (a.qual_o){ drawQualifier(ctx, a.qual_o, qO.x, qO.y, tam); }
+    if (a.qual_d){ drawQualifier(ctx, a.qual_d, qD.x, qD.y, tam); }
+
+    // Etiqueta centrada (nombre de la asociación)
     if (a.etiqueta){
       let maxL=-1, mid=null;
       for(let i=0;i<pts.length-1;i++){
@@ -174,6 +201,7 @@
       }
     }
 
+    // Handles cuando está seleccionada
     if (estado.seleccion?.tipo==='arista' && DS.estado.aristas[estado.seleccion.idx]===a){
       ctx.fillStyle='#2563eb';
       (a.puntos||[]).forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill(); });
@@ -187,6 +215,7 @@
     }
   }
 
+  // ------- Etiquetas y offsets -------------------------------------------
   function drawLabel(ctx, text, x, y, tam){
     ctx.font = tam+'px system-ui';
     const m = ctx.measureText(text);
@@ -195,6 +224,19 @@
     ctx.strokeStyle='#e5e7eb'; ctx.strokeRect(x-4, y-h+3, w, h);
     ctx.fillStyle='#0f172a'; ctx.fillText(text, x, y);
   }
+  function drawSoftText(ctx, text, x, y, tam){
+    ctx.font = Math.max(10, tam-2)+'px system-ui';
+    ctx.fillStyle='#111'; ctx.fillText(text, x, y);
+  }
+  function drawQualifier(ctx, text, x, y, tam){
+    const t = (s.startsWith('[') && s.endsWith(']')) ? s : '[' + s + ']';
+    ctx.font = Math.max(10, tam-2)+'px system-ui';
+    const m = ctx.measureText(t);
+    const w = m.width + 8, h = (tam-2) + 6;
+    ctx.fillStyle='#fff'; ctx.fillRect(x-4, y-h+3, w, h);
+    ctx.strokeStyle='#0b57d0'; ctx.strokeRect(x-4, y-h+3, w, h);
+    ctx.fillStyle='#0f172a'; ctx.fillText(t, x, y);
+  }
 
   function offsetCard(p, lado, tam){
     const off = 10 + tam/3;
@@ -202,6 +244,20 @@
     if (lado==='abajo')  return {x:p.x, y:p.y + off};
     if (lado==='izq')    return {x:p.x - off, y:p.y};
     return {x:p.x + off, y:p.y};
+  }
+  function offsetRole(p, lado, tam){
+    const off = 18 + tam/2;
+    if (lado==='arriba') return {x:p.x + 6, y:p.y - off};
+    if (lado==='abajo')  return {x:p.x + 6, y:p.y + off};
+    if (lado==='izq')    return {x:p.x - off, y:p.y - 6};
+    return {x:p.x + off, y:p.y - 6};
+  }
+  function offsetQual(p, lado, tam){
+    const off = 8 + tam/4;
+    if (lado==='arriba') return {x:p.x - 8, y:p.y - off - 6};
+    if (lado==='abajo')  return {x:p.x - 8, y:p.y + off + 12};
+    if (lado==='izq')    return {x:p.x - off - 24, y:p.y + 12};
+    return {x:p.x + off, y:p.y + 12};
   }
 
   function normalDe(p1,p2,dist){
@@ -222,7 +278,6 @@
 
   function actualizarBotonEliminar(){
     const b=dom.btnBorrar;
-    // Si hay arista seleccionada: coloca cerca del punto medio de su tramo mayor
     if(estado.seleccion?.tipo==='arista'){
       const a=estado.aristas[estado.seleccion.idx]; if(!a){b.style.display='none';return;}
       const g=puntosArista(a); if(!g){b.style.display='none';return;}
@@ -238,7 +293,6 @@
       b.style.display='block'; return;
     }
 
-    // Si hay selección múltiple: ubicar en la esquina superior-derecha del bbox
     if (estado.selNodos.size>0){
       const bb = util.bboxDeIds(estado.selNodos);
       if (!bb){ b.style.display='none'; return; }
@@ -249,7 +303,6 @@
       b.style.display='block'; return;
     }
 
-    // Si hay un único nodo seleccionado por 'seleccion'
     if(estado.seleccion?.tipo==='nodo'){
       const n=util.buscarNodoPorId(estado.seleccion.id); if(!n){b.style.display='none';return;}
       const rect = dom.lienzo.getBoundingClientRect(), z = estado.mundo.zoom || 1;

@@ -49,7 +49,6 @@
         const p = pagina.posEnViewport(x, y);
         dom.editor.style.left = p.left + "px";
         dom.editor.style.top  = p.top  + "px";
-        // ancho coherente con zoom
         const w = (n.ancho - 16) * (estado.mundo.zoom||1);
         dom.editor.style.width = Math.max(80, Math.round(w)) + "px";
       }
@@ -82,7 +81,6 @@
       }
     }
 
-    // Marquee en vivo
     if (estado.marcando && estado.marcoRect){
       estado.marcoRect.x2 = x;
       estado.marcoRect.y2 = y;
@@ -90,7 +88,6 @@
       return;
     }
 
-    // Arrastre de un punto intermedio de arista
     if (estado.arrastrandoPuntoArista){
       const {idxArista, idxP} = estado.arrastrandoPuntoArista;
       const a = estado.aristas[idxArista];
@@ -101,7 +98,6 @@
       }
     }
 
-    // Arrastre de extremo de arista (ancla lado)
     if (estado.arrastrandoExtremoArista){
       const {idxArista, extremo} = estado.arrastrandoExtremoArista;
       const a = estado.aristas[idxArista]; if (!a) return;
@@ -114,7 +110,6 @@
       return;
     }
 
-    // Arrastre de grupo
     if (estado.arrastreGrupo){
       for (const it of estado.arrastreGrupo.items){
         const n2 = util.buscarNodoPorId(it.id);
@@ -160,7 +155,6 @@
     const { x, y } = pagina.aCanvas(e);
     const n = util.obtenerNodoEn(x, y);
 
-    // 1) si hay arista seleccionada, probar arrastres de extremos/puntos
     if (estado.seleccion?.tipo==='arista'){
       const a = estado.aristas[estado.seleccion.idx];
       if (a){
@@ -186,7 +180,6 @@
       }
     }
 
-    // 2) selección de arista (si no hay nodo)
     if (!n) {
       const pick = pickAristaCercana(x, y);
       if (pick) {
@@ -203,7 +196,6 @@
       }
     }
 
-    // 3) Conectar desde puntos de un nodo / y redimensionar
     if (n && n.tipo === "clase") {
       for (const [h, cx, cy] of [['nw', n.x, n.y], ['ne', n.x + n.ancho, n.y], ['sw', n.x, n.y + n.alto], ['se', n.x + n.ancho, n.y + n.alto]]) {
         if (Math.hypot(x - cx, y - cy) <= 6) { estado.seleccion = { tipo: 'nodo', id: n.id }; estado.selNodos.clear(); estado.selNodos.add(n.id); estado.redimensionando = true; estado.handle = h; render.dibujar(); return; }
@@ -219,9 +211,7 @@
       }
     }
 
-    // 4) Gestión de selección/arrastre de grupo
     if (n) {
-      // Toggle con Ctrl / Cmd
       if (e.ctrlKey || e.metaKey){
         if (estado.selNodos.has(n.id)) estado.selNodos.delete(n.id); else estado.selNodos.add(n.id);
         estado.seleccion = estado.selNodos.size===1 ? {tipo:'nodo', id:[...estado.selNodos][0]} : null;
@@ -229,12 +219,10 @@
         return;
       }
 
-      // Sin modificadores: si el nodo no estaba en el grupo, reinicia el grupo
       if (!estado.selNodos.has(n.id)){ estado.selNodos.clear(); }
       estado.selNodos.add(n.id);
       estado.seleccion = estado.selNodos.size===1 ? {tipo:'nodo', id:n.id} : null;
 
-      // ¿plus para agregar filas?
       if (n.tipo === "clase") {
         const p = render.dentroPlus(n, x, y);
         if (p) {
@@ -243,7 +231,6 @@
         }
       }
 
-      // Arrastre de grupo (todos los seleccionados)
       estado.arrastreGrupo = {
         baseX:x, baseY:y,
         items: [...estado.selNodos].map(id=>{
@@ -255,7 +242,6 @@
       return;
     }
 
-    // 5) En vacío: iniciar marquee
     estado.seleccion = null;
     estado.selNodos.clear();
     estado.marcando = true;
@@ -284,7 +270,14 @@
       if (n && n.id !== origen.id) {
         const ladoD = util.anclaMasCercana(n, x, y);
         if (!util.existeArista(origen.id, n.id)){
-          const edge = { id: Date.now()+Math.floor(Math.random()*1000), origenId: origen.id, destinoId: n.id, anc_o: estado.ancla_origen, anc_d: ladoD, tam:12, puntos:[] };
+          const edge = {
+            id: Date.now()+Math.floor(Math.random()*1000),
+            origenId: origen.id, destinoId: n.id,
+            anc_o: estado.ancla_origen, anc_d: ladoD,
+            tam:12, puntos:[],
+            // NUEVO: por defecto mantenemos flecha Origen→Destino (compatibilidad)
+            nav:'o2d'
+          };
           estado.aristas.push(edge);
           DS.emitAddEdge(edge);
         }
@@ -295,18 +288,23 @@
         DS.emitAddNode(nn);
         const ladoD = util.ladoPreferido(nn, origen);
         if (!util.existeArista(origen.id, nn.id)){
-          const edge = { id: Date.now()+Math.floor(Math.random()*1000), origenId: origen.id, destinoId: nn.id, anc_o: estado.ancla_origen, anc_d: ladoD, tam:12, puntos:[] };
+          const edge = {
+            id: Date.now()+Math.floor(Math.random()*1000),
+            origenId: origen.id, destinoId: nn.id,
+            anc_o: estado.ancla_origen, anc_d: ladoD,
+            tam:12, puntos:[],
+            nav:'o2d'
+          };
           estado.aristas.push(edge);
           DS.emitAddEdge(edge);
         }
         estado.seleccion = { tipo: 'nodo', id: nn.id };
         estado.selNodos.clear(); estado.selNodos.add(nn.id);
         pagina.expandirSiNecesario(nn);
-        pagina.enfocarNodo(nn);        // v1.1.2: mantiene visible la nueva clase
+        pagina.enfocarNodo(nn);
       }
     }
 
-    // Cerrar arrastres
     if (estado.redimensionando && estado.seleccion?.tipo==='nodo'){
       const no = DS.util.buscarNodoPorId(estado.seleccion.id);
       if (no) DS.emitResizeNode(no.id, no.ancho, no.alto);
@@ -316,7 +314,6 @@
     estado.arrastrando = false;
     if (estado.arrastreGrupo){ estado.arrastreGrupo=null; }
 
-    // Cerrar marquee: aplicar selección por marco
     if (estado.marcando && estado.marcoRect){
       estado.marcando=false;
       const r = DS.util.recta(estado.marcoRect.x1, estado.marcoRect.y1, x, y);
@@ -399,7 +396,7 @@
     pagina.contraerSiCabe(); render.dibujar();
   }
 
-  // === Editor inline (nodo/filas) – ahora usando posEnViewport ===========
+  // === Editor inline (nodo/filas) ========================================
   function abrirEditor(n, tipo, idx = null) {
     dom.editorArista.style.display = "none";
     let x = n.x + 8, y, w = n.ancho - 16, val = "";
@@ -462,18 +459,23 @@
     dom.editor.style.display = "none"; render.dibujar();
   }
 
-  // === Editor de arista – posEnViewport + recordatorio de ancla ===========
+  // === Editor de arista (UML Asociación) ==================================
   function abrirEditorArista(idx, cx, cy){
     dom.editor.style.display = "none";
     estado.seleccion = { tipo:'arista', idx };
     estado.selNodos.clear();
     const a = estado.aristas[idx]; if(!a) return;
-    dom.ea_lbl.value = a.etiqueta || "";
-    dom.ea_o.value   = a.card_o  || "";
-    dom.ea_d.value   = a.card_d  || "";
-    dom.ea_sz.value  = a.tam || 12;
 
-    // Guardamos el punto de anclaje (canvas coords) para reubicar en scroll/resize
+    dom.ea_lbl.value   = a.etiqueta || "";
+    dom.ea_o.value     = a.card_o  || "";
+    dom.ea_d.value     = a.card_d  || "";
+    dom.ea_role_o.value = a.role_o || "";
+    dom.ea_role_d.value = a.role_d || "";
+    dom.ea_qual_o.value = a.qual_o || "";
+    dom.ea_qual_d.value = a.qual_d || "";
+    dom.ea_nav.value    = a.nav || 'o2d';
+    dom.ea_sz.value     = a.tam || 12;
+
     dom.editorArista.dataset.cx = String(cx);
     dom.editorArista.dataset.cy = String(cy);
 
@@ -490,11 +492,23 @@
     const s = estado.seleccion;
     if(s?.tipo!=='arista') { dom.editorArista.style.display='none'; return; }
     const a = estado.aristas[s.idx]; if(!a) return;
+
     a.etiqueta = dom.ea_lbl.value.trim() || undefined;
     a.card_o   = dom.ea_o.value.trim()   || undefined;
     a.card_d   = dom.ea_d.value.trim()   || undefined;
+    a.role_o   = dom.ea_role_o.value.trim() || undefined;
+    a.role_d   = dom.ea_role_d.value.trim() || undefined;
+    a.qual_o   = dom.ea_qual_o.value.trim() || undefined;
+    a.qual_d   = dom.ea_qual_d.value.trim() || undefined;
+    a.nav      = dom.ea_nav.value || 'o2d';
     a.tam      = Math.max(10, Math.min(24, parseInt(dom.ea_sz.value||'12',10)));
-    DS.emitUpdateEdge(a.id, { etiqueta:a.etiqueta, card_o:a.card_o, card_d:a.card_d, tam:a.tam });
+
+    DS.emitUpdateEdge(a.id, {
+      etiqueta:a.etiqueta, card_o:a.card_o, card_d:a.card_d,
+      role_o:a.role_o, role_d:a.role_d, qual_o:a.qual_o, qual_d:a.qual_d,
+      nav:a.nav, tam:a.tam
+    });
+
     dom.editorArista.style.display='none'; render.dibujar();
   });
 
@@ -538,14 +552,13 @@
     reubicarOverlays();
   }, { passive:false });
 
-  // Redibuja al hacer scroll para mantener overlays anclados
   dom.zona.addEventListener('scroll', ()=> render.dibujar());
   window.addEventListener('scroll', ()=> render.dibujar(), true);
   window.addEventListener('resize', ()=> render.dibujar());
 
   // === Guardar / Cargar ===================================================
   dom.btnGuardar.onclick = async ()=>{
-    const paquete = { version: "1.1.2-overlays-focus", nodos: estado.nodos, aristas: estado.aristas, meta: { guardado: new Date().toISOString() } };
+    const paquete = { version: "1.1.3-assoc-nav-role-qual", nodos: estado.nodos, aristas: estado.aristas, meta: { guardado: new Date().toISOString() } };
     const body = new URLSearchParams({ accion: "guardar", token: estado.token_csrf, json: JSON.stringify(paquete) });
     const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
     const d = await r.json().catch(() => ({ ok: false }));
@@ -557,7 +570,11 @@
     const r = await fetch(API + "?accion=cargar&id=" + encodeURIComponent(id));
     if (!r.ok) return alert("No existe");
     const d = await r.json();
-    estado.nodos = d.nodos || []; estado.aristas = (d.aristas||[]).map(a=>({puntos:[],tam:12,...a}));
+    // Mapeo defensivo de aristas antiguas
+    estado.nodos = d.nodos || [];
+    estado.aristas = (d.aristas||[]).map(a=>({
+      puntos:[], tam:12, nav:(a.nav||'o2d'), ...a
+    }));
     estado.id_sec = 1 + (estado.nodos.reduce((m, n) => Math.max(m, n.id), 0) || 0);
     estado.seleccion = null; estado.selNodos.clear();
     pagina.aplicarPapel(); render.dibujar();
@@ -577,7 +594,7 @@
       DS.emitAddNode(nuevo);
       estado.selNodos.clear(); estado.selNodos.add(nuevo.id); estado.seleccion={tipo:'nodo',id:nuevo.id};
       pagina.expandirSiNecesario(nuevo);
-      pagina.enfocarNodo(nuevo);     // v1.1.2: foco tras crear por DnD
+      pagina.enfocarNodo(nuevo);
       render.dibujar();
     }
   });
@@ -592,7 +609,7 @@
         const r = await fetch(API + "?accion=token");
         const d = await r.json(); estado.token_csrf = d.token || "";
       } catch { console.warn("No se pudo obtener token CSRF"); }
-      pagina.aplicarPapel(); // hoja inicial visible SIEMPRE
+      pagina.aplicarPapel();
       render.dibujar();
     },
   };

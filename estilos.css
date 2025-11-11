@@ -82,5 +82,43 @@ html,body{height:100%;background:#fafafa;color:#111}
 .panel button:hover{background:#f3f6fb}
 .panel .nota{display:block;color:#475569;font-size:11.5px;margin-top:.35rem}
 
+#editor_arista.pop{ width:clamp(240px, 44vw, 420px); max-width:92vw; }
+#editor_arista .fila input, #editor_arista .fila select{ width:100%; }
+
 /* Ayuda */
 .ayuda{position:fixed;right:10px;bottom:10px;background:#0b57d0;color:#fff;border-radius:.7rem;padding:.35rem .6rem;font-size:12px;opacity:.9;pointer-events:none}
+
+/* Editor de arista (asociación UML) */
+.editor-arista{
+  position:fixed; z-index:30; background:#fff; border:1px solid #cbd5e1;
+  border-radius:.6rem; padding:.75rem; box-shadow:0 6px 22px rgba(0,0,0,.08);
+  min-width: 520px; max-width: 720px;
+}
+.editor-arista .ea-grid{
+  display:grid; grid-template-columns: 1fr 1fr 1fr; gap:.75rem; align-items:start;
+}
+.editor-arista .ea-col label{ display:block; font-size:12px; color:#334155; margin:.25rem 0 .15rem; }
+.editor-arista .ea-col input,
+.editor-arista .ea-col select{
+  width:100%; padding:.45rem .55rem; border:1px solid #cbd5e1; border-radius:.5rem; font-size:13px;
+  background:#fff;
+}
+.editor-arista .ea-subtitle{
+  font-weight:600; font-size:12px; color:#0f172a; margin-bottom:.25rem;
+  border-left:3px solid #0b57d0; padding-left:.4rem;
+}
+.editor-arista .ea-actions{
+  display:flex; gap:.5rem; justify-content:flex-end; margin-top:.5rem;
+}
+.editor-arista .ea-ok{
+  background:#0b57d0; color:#fff; border:1px solid #0b57d0; border-radius:.55rem; padding:.5rem .8rem; cursor:pointer;
+}
+.editor-arista .ea-cancel{
+  background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:.55rem; padding:.5rem .8rem; cursor:pointer;
+}
+
+/* Etiquetas flotantes de multiplicidad/rol/calificador sobre lienzo */
+.ds-label{
+  background:#fff; border:1px solid #e5e7eb; padding:2px 4px;
+  border-radius:.35rem; font-size:12px;
+}

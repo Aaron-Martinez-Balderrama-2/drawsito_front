@@ -60,18 +60,57 @@
   <section class="zona" id="zona_canvas">
     <canvas id="lienzo"></canvas>
     <input id="editor_inline"/>
-    <form id="editor_arista" class="pop" autocomplete="off">
-      <div class="fila"><label>Etiqueta</label><input type="text" id="ea_lbl" placeholder="relación (opcional)"/></div>
-      <div class="fila2">
-        <div><label>Origen</label><input type="text" id="ea_o" placeholder="1, 0..1, 0..*, *..*"/></div>
-        <div><label>Destino</label><input type="text" id="ea_d" placeholder="1, 0..1, 0..*, *..*"/></div>
+    <!-- Editor de arista: Asociación (Multiplicidad, Navegabilidad, Rol, Calificador) -->
+    <form id="editor_arista" class="editor-arista" style="display:none">
+      <div class="ea-grid">
+        <div class="ea-col">
+          <label for="ea_lbl">Etiqueta (nombre de la asociación)</label>
+          <input id="ea_lbl" type="text" placeholder="p.ej. realiza / pertenece a">
+
+          <label for="ea_nav">Navegabilidad</label>
+          <select id="ea_nav">
+            <option value="none">Sin flechas (bidireccional implícito)</option>
+            <option value="o2d">Origen → Destino</option>
+            <option value="d2o">Destino → Origen</option>
+            <option value="both">Ambos extremos</option>
+          </select>
+
+          <label for="ea_sz">Tamaño de texto (10–24)</label>
+          <input id="ea_sz" type="number" min="10" max="24" step="1" value="12">
+        </div>
+
+        <div class="ea-col">
+          <div class="ea-subtitle">Extremo Origen</div>
+          <label for="ea_o">Multiplicidad (Origen)</label>
+          <input id="ea_o" type="text" placeholder="1, 0..1, 0.., 1.., *">
+
+          <label for="ea_role_o">Rol (Origen)</label>
+          <input id="ea_role_o" type="text" placeholder="p.ej. cliente, padre, dueño">
+
+          <label for="ea_qual_o">Calificador (Origen)</label>
+          <input id="ea_qual_o" type="text" placeholder="p.ej. [número], [código]">
+        </div>
+
+        <div class="ea-col">
+          <div class="ea-subtitle">Extremo Destino</div>
+          <label for="ea_d">Multiplicidad (Destino)</label>
+          <input id="ea_d" type="text" placeholder="1, 0..1, 0.., 1.., *">
+
+          <label for="ea_role_d">Rol (Destino)</label>
+          <input id="ea_role_d" type="text" placeholder="p.ej. pedido, hijo, mascota">
+
+          <label for="ea_qual_d">Calificador (Destino)</label>
+          <input id="ea_qual_d" type="text" placeholder="p.ej. [fecha], [tipo]">
+        </div>
       </div>
-      <div class="fila2">
-        <div style="width:140px"><label>Tamaño texto</label><input type="number" id="ea_sz" min="10" max="24" step="1" value="12"/></div>
-        <div class="nota" style="align-self:end">Afecta etiqueta y cardinalidades</div>
+
+      <div class="ea-actions">
+        <button type="submit" class="ea-ok">Aplicar</button>
+        <button type="button" id="ea_cancel" class="ea-cancel">Cancelar</button>
       </div>
-      <div class="acciones"><button type="submit">OK</button><button type="button" id="ea_cancel">Cancelar</button></div>
-    </form>
+    </form>    
+
+
     <button id="btn_borrar_sel">🗑 Eliminar</button>
   </section>
 

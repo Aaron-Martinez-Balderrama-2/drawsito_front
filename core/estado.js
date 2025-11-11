@@ -7,12 +7,21 @@
     zona: document.getElementById('zona_canvas'),
     lienzo: document.getElementById('lienzo'),
     editor: document.getElementById('editor_inline'),
+
+    // Editor de aristas (asociación UML)
     editorArista: document.getElementById('editor_arista'),
     ea_lbl: document.getElementById('ea_lbl'),
     ea_o: document.getElementById('ea_o'),
     ea_d: document.getElementById('ea_d'),
     ea_sz: document.getElementById('ea_sz'),
     ea_cancel: document.getElementById('ea_cancel'),
+    // NUEVOS:
+    ea_nav: document.getElementById('ea_nav'),
+    ea_role_o: document.getElementById('ea_role_o'),
+    ea_role_d: document.getElementById('ea_role_d'),
+    ea_qual_o: document.getElementById('ea_qual_o'),
+    ea_qual_d: document.getElementById('ea_qual_d'),
+
     btnBorrar: document.getElementById('btn_borrar_sel'),
     btnGuardar: document.getElementById('btn_guardar'),
     btnCargar: document.getElementById('btn_cargar'),
@@ -32,7 +41,7 @@
   const estado = (DS.estado = {
     token_csrf:'',
     nodos:[],
-    // arista: {origenId,destinoId,etiqueta,card_o,card_d,anc_o,anc_d,tam,puntos:[{x,y},...]}
+    // arista: {origenId,destinoId,etiqueta,card_o,card_d,role_o,role_d,qual_o,qual_d,nav,anc_o,anc_d,tam,puntos:[{x,y},...]}
     aristas:[],
     id_sec:1,
 
