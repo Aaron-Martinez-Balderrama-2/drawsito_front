@@ -275,8 +275,10 @@
             origenId: origen.id, destinoId: n.id,
             anc_o: estado.ancla_origen, anc_d: ladoD,
             tam:12, puntos:[],
-            // NUEVO: por defecto mantenemos flecha Origen→Destino (compatibilidad)
-            nav:'o2d'
+            // NUEVO: por defecto flecha Origen→Destino (compatibilidad)
+            nav:'o2d',
+            // NUEVO: preset UML por defecto (compat)
+            uml:'assoc'
           };
           estado.aristas.push(edge);
           DS.emitAddEdge(edge);
@@ -293,7 +295,8 @@
             origenId: origen.id, destinoId: nn.id,
             anc_o: estado.ancla_origen, anc_d: ladoD,
             tam:12, puntos:[],
-            nav:'o2d'
+            nav:'o2d',
+            uml:'assoc'
           };
           estado.aristas.push(edge);
           DS.emitAddEdge(edge);
@@ -335,7 +338,7 @@
       estado.selNodos.clear(); estado.selNodos.add(n.id);
       estado.seleccion = { tipo: 'nodo', id: n.id };
       if (n.tipo === "clase") {
-        const z = DS.util.layoutClase(n) && DS.render.indiceSeccion(n, x, y);
+        const z = DS.render.indiceSeccion(n, x, y);
         if (z.tipo === "titulo") abrirEditor(n, "titulo");
         if (z.tipo === "atr")   abrirEditor(n, "atr", z.idx);
         if (z.tipo === "met")   abrirEditor(n, "met", z.idx);
@@ -459,7 +462,7 @@
     dom.editor.style.display = "none"; render.dibujar();
   }
 
-  // === Editor de arista (UML Asociación) ==================================
+  // === Editor de arista (UML Asociación + PRESET UML) =====================
   function abrirEditorArista(idx, cx, cy){
     dom.editor.style.display = "none";
     estado.seleccion = { tipo:'arista', idx };
@@ -475,6 +478,9 @@
     dom.ea_qual_d.value = a.qual_d || "";
     dom.ea_nav.value    = a.nav || 'o2d';
     dom.ea_sz.value     = a.tam || 12;
+
+    // NUEVO: preset UML (protegido por si aún no añadiste el <select>)
+    if (dom.ea_preset) dom.ea_preset.value = a.uml || 'assoc';
 
     dom.editorArista.dataset.cx = String(cx);
     dom.editorArista.dataset.cy = String(cy);
@@ -503,10 +509,15 @@
     a.nav      = dom.ea_nav.value || 'o2d';
     a.tam      = Math.max(10, Math.min(24, parseInt(dom.ea_sz.value||'12',10)));
 
+    // NUEVO: preset UML (si existe control: se guarda; si no, mantiene lo que tenga o 'assoc')
+    a.uml = (dom.ea_preset ? dom.ea_preset.value : (a.uml||'assoc'));
+
     DS.emitUpdateEdge(a.id, {
       etiqueta:a.etiqueta, card_o:a.card_o, card_d:a.card_d,
       role_o:a.role_o, role_d:a.role_d, qual_o:a.qual_o, qual_d:a.qual_d,
-      nav:a.nav, tam:a.tam
+      nav:a.nav, tam:a.tam,
+      // NUEVO: enviar el preset UML
+      uml:a.uml
     });
 
     dom.editorArista.style.display='none'; render.dibujar();
@@ -558,7 +569,7 @@
 
   // === Guardar / Cargar ===================================================
   dom.btnGuardar.onclick = async ()=>{
-    const paquete = { version: "1.1.3-assoc-nav-role-qual", nodos: estado.nodos, aristas: estado.aristas, meta: { guardado: new Date().toISOString() } };
+    const paquete = { version: "1.1.4-uml-presets", nodos: estado.nodos, aristas: estado.aristas, meta: { guardado: new Date().toISOString() } };
     const body = new URLSearchParams({ accion: "guardar", token: estado.token_csrf, json: JSON.stringify(paquete) });
     const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
     const d = await r.json().catch(() => ({ ok: false }));
@@ -570,10 +581,13 @@
     const r = await fetch(API + "?accion=cargar&id=" + encodeURIComponent(id));
     if (!r.ok) return alert("No existe");
     const d = await r.json();
-    // Mapeo defensivo de aristas antiguas
+    // Mapeo defensivo de aristas antiguas + default de preset UML
     estado.nodos = d.nodos || [];
     estado.aristas = (d.aristas||[]).map(a=>({
-      puntos:[], tam:12, nav:(a.nav||'o2d'), ...a
+      puntos:[], tam:12,
+      nav:(a.nav||'o2d'),
+      uml:(a.uml||'assoc'),
+      ...a
     }));
     estado.id_sec = 1 + (estado.nodos.reduce((m, n) => Math.max(m, n.id), 0) || 0);
     estado.seleccion = null; estado.selNodos.clear();

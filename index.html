@@ -15,6 +15,42 @@
     .modal .box .fila{display:flex;gap:.5rem;margin-top:.6rem}
     .modal .box button{flex:1 1 auto;border:1px solid #d9dde5;background:#fbfdff;padding:.45rem .6rem;border-radius:.5rem;cursor:pointer}
     .pill{font-size:12px;color:#475569;margin-left:.35rem}
+
+    /* === Overlays (editor inline + editor de aristas) === */
+    #editor_inline{
+      display:none; position:fixed; z-index:1000;
+      box-shadow:0 6px 18px rgba(0,0,0,.1);
+      border:1px solid #cbd5e1; border-radius:8px;
+      padding:6px 8px; font:13px system-ui; background:#fff;
+      min-width:120px;
+    }
+    #editor_arista{
+      display:none; position:fixed; z-index:1001;
+      background:#fff; border:1px solid #e5e7eb; border-radius:10px;
+      box-shadow:0 10px 30px rgba(0,0,0,.12);
+      padding:12px; min-width:340px; max-width:520px;
+    }
+    #editor_arista label{display:block;font:600 12px system-ui;color:#0f172a;margin:6px 0 4px}
+    #editor_arista input[type="text"],
+    #editor_arista input[type="number"],
+    #editor_arista select{
+      width:100%; box-sizing:border-box; padding:6px 8px;
+      border:1px solid #cbd5e1; border-radius:8px; font:13px system-ui;
+    }
+    #editor_arista .ea-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px}
+    #editor_arista .ea-col{display:flex;flex-direction:column}
+    #editor_arista .ea-subtitle{font:700 12px system-ui;color:#0b1324;margin:4px 0}
+    #editor_arista .ea-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+    #editor_arista .ea-ok{background:#0ea5e9;color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+    #editor_arista .ea-cancel{background:#f1f5f9;color:#0f172a;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+
+    /* Botón de eliminar (overlay posicionado por JS) */
+    #btn_borrar_sel{
+      position:fixed; display:none; z-index:1002;
+      background:#ef4444; color:#fff; border:0;
+      padding:6px 10px; border-radius:8px; cursor:pointer;
+      box-shadow:0 6px 18px rgba(0,0,0,.18);
+    }
   </style>
 </head>
 <body>
@@ -59,9 +95,12 @@
 
   <section class="zona" id="zona_canvas">
     <canvas id="lienzo"></canvas>
-    <input id="editor_inline"/>
-    <!-- Editor de arista: Asociación (Multiplicidad, Navegabilidad, Rol, Calificador) -->
-    <form id="editor_arista" class="editor-arista" style="display:none">
+
+    <!-- Editor inline (nodos / filas) -->
+    <input id="editor_inline" type="text"/>
+
+    <!-- Editor de arista: Asociación (Multiplicidad, Navegabilidad, Rol, Calificador + Tipo UML) -->
+    <form id="editor_arista" class="editor-arista">
       <div class="ea-grid">
         <div class="ea-col">
           <label for="ea_lbl">Etiqueta (nombre de la asociación)</label>
@@ -69,10 +108,21 @@
 
           <label for="ea_nav">Navegabilidad</label>
           <select id="ea_nav">
-            <option value="none">Sin flechas (bidireccional implícito)</option>
             <option value="o2d">Origen → Destino</option>
             <option value="d2o">Destino → Origen</option>
             <option value="both">Ambos extremos</option>
+            <option value="none">Sin flechas</option>
+          </select>
+
+          <!-- Tipo UML (presets 2–6) -->
+          <label for="ea_preset">Tipo UML</label>
+          <select id="ea_preset" name="ea_preset">
+            <option value="assoc">Asociación (por defecto)</option>
+            <option value="agg">Agregación (◇ hueco)</option>
+            <option value="comp">Composición (◆ lleno)</option>
+            <option value="gen">Generalización (△ hueco)</option>
+            <option value="real">Realización (△ hueco + discontinua)</option>
+            <option value="dep">Dependencia (V abierta + discontinua)</option>
           </select>
 
           <label for="ea_sz">Tamaño de texto (10–24)</label>
@@ -108,8 +158,7 @@
         <button type="submit" class="ea-ok">Aplicar</button>
         <button type="button" id="ea_cancel" class="ea-cancel">Cancelar</button>
       </div>
-    </form>    
-
+    </form>
 
     <button id="btn_borrar_sel">🗑 Eliminar</button>
   </section>
@@ -177,7 +226,7 @@
   window.DRAWSITO_CONFIG = {
     api:  "/proyecto/drawsito_back/api.php",
     rt:   "/proyecto/drawsito_back/tiempo_real.php",
-    ws:   "ws://localhost:8088",             <!-- ← NUEVO -->
+    ws:   "ws://localhost:8088",  // WebSocket relay (instantáneo)
     auth: "/proyecto/drawsito_back/auth.php"
   };
   window.DRAWSITO_SESSION = { token:'', user:null };
@@ -191,9 +240,8 @@
 <script src="app.js"></script>
 
 <script>
-// ======== Auth UI (simple) ===============================================
+/* ======== Auth UI (simple) =============================================== */
 (async function authInit(){
-  // whoami entrega también token CSRF reutilizable
   try{
     const r = await fetch(DRAWSITO_CONFIG.auth+'?accion=whoami');
     const d = await r.json();
@@ -243,7 +291,7 @@ document.getElementById('btn_logout').onclick = async ()=>{
   if(d.ok){ DRAWSITO_SESSION.user=null; pintarAuth(); }
 };
 
-// Botón "Colaborar": une a la sala usando el ID (igual que antes)
+/* Colaboración: une a la sala usando el ID (igual que antes) */
 document.getElementById('btn_colaborar').onclick = async ()=>{
   const id = (document.getElementById('inp_id').value||'').trim();
   if (!id) return alert('Escribe un ID de sala (usa el mismo que el de guardado)');
@@ -252,12 +300,9 @@ document.getElementById('btn_colaborar').onclick = async ()=>{
     document.getElementById('lbl_colab').textContent = 'Sala: '+id+' (sincronizando)';
   }catch(e){ alert('No se pudo unir a la sala'); }
 };
-
-// Sobrescribir guardar para enviar token CSRF de sesión ya establecido
-document.getElementById('btn_guardar').addEventListener('click', ()=>{}); // handler real está en interaccion.js, usa token global
 </script>
 
-<!-- Generar proyecto (ZIP) mantiene lógica previa -->
+<!-- Generar proyecto (ZIP) -->
 <script>
 (function(){
   const btn = document.getElementById('btn_generar');

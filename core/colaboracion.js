@@ -195,18 +195,20 @@
 
   // Azúcar: no rompe si colaboración no está activa
   const NOP = ()=>{};
-  DS.emitAddNode     = (...a)=> Collab.activa ? Collab.emitirAddNodo(...a)   : NOP();
-  DS.emitDeleteNode  = (...a)=> Collab.activa ? Collab.emitirBorrarNodo(...a): NOP();
-  DS.emitMoveNode    = (...a)=> Collab.activa ? Collab.emitirMoverNodo(...a) : NOP();
-  DS.emitResizeNode  = (...a)=> Collab.activa ? Collab.emitirRedimNodo(...a) : NOP();
 
-  DS.emitSetTitle    = (...a)=> Collab.activa ? Collab.emitirSetTitulo(...a) : NOP();
-  DS.emitSetAttr     = (...a)=> Collab.activa ? Collab.emitirSetAtr(...a)    : NOP();
-  DS.emitDelAttr     = (...a)=> Collab.activa ? Collab.emitirDelAtr(...a)    : NOP();
-  DS.emitSetMethod   = (...a)=> Collab.activa ? Collab.emitirSetMet(...a)    : NOP();
-  DS.emitDelMethod   = (...a)=> Collab.activa ? Collab.emitirDelMet(...a)    : NOP();
+  DS.emitAddNode     = (...a)=> Collab.activa ? Collab.emitirAddNodo(...a)     : NOP();
+  DS.emitDeleteNode  = (...a)=> Collab.activa ? Collab.emitirBorrarNodo(...a)  : NOP();
+  DS.emitMoveNode    = (...a)=> Collab.activa ? Collab.emitirMoverNodo(...a)   : NOP();
+  DS.emitResizeNode  = (...a)=> Collab.activa ? Collab.emitirRedimNodo(...a)   : NOP();
 
-  DS.emitAddEdge     = (...a)=> Collab.activa ? Collab.emitirAddArista(...a) : NOP();
-  DS.emitUpdateEdge  = (...a)=> Collab.activa ? Collab.emitirUpdArista(...a) : NOP();
-  DS.emitDeleteEdge  = (...a)=> Collab.activa ? Collab.emitirDelArista(...a) : NOP();
+  DS.emitSetTitle    = (...a)=> Collab.activa ? Collab.emitirSetTitulo(...a)   : NOP();
+  DS.emitSetAttr     = (...a)=> Collab.activa ? Collab.emitirSetAtr(...a)      : NOP();
+  DS.emitDelAttr     = (...a)=> Collab.activa ? Collab.emitirDelAtr(...a)      : NOP();
+  DS.emitSetMethod   = (...a)=> Collab.activa ? Collab.emitirSetMet(...a)      : NOP();
+  DS.emitDelMethod   = (...a)=> Collab.activa ? Collab.emitirDelMet(...a)      : NOP();
+
+  DS.emitAddEdge     = (...a)=> Collab.activa ? Collab.emitirAddArista(...a)   : NOP();
+  DS.emitUpdateEdge  = (...a)=> Collab.activa ? Collab.emitirUpdArista(...a)   : NOP();
+  DS.emitDeleteEdge  = (...a)=> Collab.activa ? Collab.emitirDelArista(...a)   : NOP();
+
 })();

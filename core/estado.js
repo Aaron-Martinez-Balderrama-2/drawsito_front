@@ -21,6 +21,7 @@
     ea_role_d: document.getElementById('ea_role_d'),
     ea_qual_o: document.getElementById('ea_qual_o'),
     ea_qual_d: document.getElementById('ea_qual_d'),
+    ea_preset: document.getElementById('ea_preset'),
 
     btnBorrar: document.getElementById('btn_borrar_sel'),
     btnGuardar: document.getElementById('btn_guardar'),
@@ -31,7 +32,7 @@
     optPag: document.getElementById('opt_ver_pag'),
     optCon: document.getElementById('opt_conectores'),
     selPapel: document.getElementById('sel_papel'),
-    radiosOri: [...document.querySelectorAll('input[name="ori"]')],
+    radiosOri: Array.from(document.querySelectorAll('input[name="ori"]')),
     panelClase: document.getElementById('panel_clase'),
     inpTitulo: document.getElementById('clase_titulo'),
   });

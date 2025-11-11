@@ -122,3 +122,30 @@ html,body{height:100%;background:#fafafa;color:#111}
   background:#fff; border:1px solid #e5e7eb; padding:2px 4px;
   border-radius:.35rem; font-size:12px;
 }
+
+/* Overlay editor de aristas */
+#editor_arista {
+  background:#fff; border:1px solid #e5e7eb; border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.12);
+  padding:10px; min-width:320px; max-width:420px;
+}
+#editor_arista .ea-wrap { display:flex; flex-direction:column; gap:8px; }
+#editor_arista label { display:block; font:600 12px system-ui; color:#0f172a; margin-bottom:4px; }
+#editor_arista input[type="text"],
+#editor_arista input[type="number"],
+#editor_arista select {
+  width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; font:13px system-ui;
+}
+#editor_arista .ea-row { display:flex; flex-direction:column; }
+#editor_arista .ea-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+#editor_arista .ea-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+#editor_arista .ea-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; }
+#editor_arista .ea-ok { background:#0ea5e9; color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
+#editor_arista .ea-cancel { background:#f1f5f9; color:#0f172a; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
+
+/* Input inline existente (para título/atributos/métodos) */
+#editor_inline{
+  box-shadow:0 6px 18px rgba(0,0,0,.1);
+  border:1px solid #cbd5e1; border-radius:8px;
+  padding:6px 8px; font:13px system-ui; background:#fff;
+}
