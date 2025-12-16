@@ -139,6 +139,17 @@
 
     aplicarRemoto(op){
       const E = DS.estado, U = DS.util, T = op.type;
+      if (T === 'load_full') {
+          E.nodos = op.nodos || [];
+          E.aristas = op.aristas || [];
+          E.seleccion = null;
+          E.selNodos.clear();
+          // Recalcular ID secuencial para evitar colisiones futuras
+          const maxId = E.nodos.reduce((m,n)=>Math.max(m, n.id||0), 0);
+          E.id_sec = maxId + 1000 + Math.floor(Math.random()*1000);
+          DS.render.dibujar();
+          return;
+      }
       if (T==='add_node'){ E.nodos.push(op.node); return; }
       if (T==='move_node' || T==='resize_node' || T==='set_title'){
         const n = U.buscarNodoPorId(op.id); if(!n) return;
@@ -181,6 +192,7 @@
     emitirBorrarNodo: (id)=>Collab._emitir({type:'delete_node', id}),
     emitirMoverNodo:  throttle((id,x,y)=>Collab._emitir({type:'move_node', id, x, y}), T_MOVE),
     emitirRedimNodo:  throttle((id,w,h)=>Collab._emitir({type:'resize_node', id, ancho:w, alto:h}), T_RESIZE),
+    emitirCargaCompleta: (nodos, aristas) => Collab._emitir({type:'load_full', nodos, aristas}),
 
     emitirSetTitulo:  throttle((id,t)=>Collab._emitir({type:'set_title', id, titulo:t}), T_TEXT),
     emitirSetAtr:     throttle((id,idx,txt)=>Collab._emitir({type:'set_attr', id, idx, text:txt}), T_TEXT),
@@ -195,20 +207,19 @@
 
   // Azúcar: no rompe si colaboración no está activa
   const NOP = ()=>{};
+  DS.emitAddNode     = (...a)=> Collab.activa ? Collab.emitirAddNodo(...a)       : NOP();
+  DS.emitDeleteNode  = (...a)=> Collab.activa ? Collab.emitirBorrarNodo(...a)    : NOP();
+  DS.emitMoveNode    = (...a)=> Collab.activa ? Collab.emitirMoverNodo(...a)     : NOP();
+  DS.emitResizeNode  = (...a)=> Collab.activa ? Collab.emitirRedimNodo(...a)     : NOP();
 
-  DS.emitAddNode     = (...a)=> Collab.activa ? Collab.emitirAddNodo(...a)     : NOP();
-  DS.emitDeleteNode  = (...a)=> Collab.activa ? Collab.emitirBorrarNodo(...a)  : NOP();
-  DS.emitMoveNode    = (...a)=> Collab.activa ? Collab.emitirMoverNodo(...a)   : NOP();
-  DS.emitResizeNode  = (...a)=> Collab.activa ? Collab.emitirRedimNodo(...a)   : NOP();
+  DS.emitSetTitle    = (...a)=> Collab.activa ? Collab.emitirSetTitulo(...a)     : NOP();
+  DS.emitSetAttr     = (...a)=> Collab.activa ? Collab.emitirSetAtr(...a)        : NOP();
+  DS.emitDelAttr     = (...a)=> Collab.activa ? Collab.emitirDelAtr(...a)        : NOP();
+  DS.emitSetMethod   = (...a)=> Collab.activa ? Collab.emitirSetMet(...a)        : NOP();
+  DS.emitDelMethod   = (...a)=> Collab.activa ? Collab.emitirDelMet(...a)        : NOP();
 
-  DS.emitSetTitle    = (...a)=> Collab.activa ? Collab.emitirSetTitulo(...a)   : NOP();
-  DS.emitSetAttr     = (...a)=> Collab.activa ? Collab.emitirSetAtr(...a)      : NOP();
-  DS.emitDelAttr     = (...a)=> Collab.activa ? Collab.emitirDelAtr(...a)      : NOP();
-  DS.emitSetMethod   = (...a)=> Collab.activa ? Collab.emitirSetMet(...a)      : NOP();
-  DS.emitDelMethod   = (...a)=> Collab.activa ? Collab.emitirDelMet(...a)      : NOP();
-
-  DS.emitAddEdge     = (...a)=> Collab.activa ? Collab.emitirAddArista(...a)   : NOP();
-  DS.emitUpdateEdge  = (...a)=> Collab.activa ? Collab.emitirUpdArista(...a)   : NOP();
-  DS.emitDeleteEdge  = (...a)=> Collab.activa ? Collab.emitirDelArista(...a)   : NOP();
-
+  DS.emitAddEdge     = (...a)=> Collab.activa ? Collab.emitirAddArista(...a)     : NOP();
+  DS.emitUpdateEdge  = (...a)=> Collab.activa ? Collab.emitirUpdArista(...a)     : NOP();
+  DS.emitDeleteEdge  = (...a)=> Collab.activa ? Collab.emitirDelArista(...a)     : NOP();
+  DS.emitLoadFull    = (...a)=> Collab.activa ? Collab.emitirCargaCompleta(...a) : NOP();
 })();

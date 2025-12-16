@@ -239,51 +239,101 @@
     ctx.closePath(); ctx.fillStyle = '#111'; ctx.fill();
   }
 
+// drawsito_front/core/render.js
+
+  // --- Modificacion 15/12/25 v0.0.5: Lógica vectorial para evitar superposición de textos ---
+  
+  // Calcula posición basada en el vector de la línea (p1 -> p2)
+  // distAlong: distancia desde p1 a lo largo de la línea
+  // distPerp:  distancia perpendicular a la línea (negativo=izq, positivo=der)
+  function getVectorPos(p1, p2, distAlong, distPerp) {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy) || 1;
+      
+      // Vector unitario (u) y perpendicular (n)
+      const ux = dx / len;
+      const uy = dy / len;
+      const nx = -uy; 
+      const ny = ux;
+
+      return {
+          x: p1.x + (ux * distAlong) + (nx * distPerp),
+          y: p1.y + (uy * distAlong) + (ny * distPerp)
+      };
+  }
+
   function dibTextosYHandlesArista(ctx, a) {
     const g = puntosArista(a); if (!g) return;
-    const { pts, pO, pD, ladoO, ladoD } = g;
+    const { pts } = g;
     const tam = Math.max(10, Math.min(24, a.tam || 12));
     ctx.font = tam + 'px system-ui'; ctx.fillStyle = '#0f172a';
 
-    // Multiplicidades
-    const posO = offsetCard(pO, ladoO, tam);
-    const posD = offsetCard(pD, ladoD, tam);
-    if (a.card_o) { drawLabel(ctx, a.card_o, posO.x, posO.y, tam); }
-    if (a.card_d) { drawLabel(ctx, a.card_d, posD.x, posD.y, tam); }
+    // Definimos los puntos clave para los vectores
+    // Origen: Vector desde pts[0] hacia pts[1]
+    const pStart = pts[0];
+    const pNext  = pts[1]; 
+    
+    // Destino: Vector desde el último punto hacia el penúltimo (hacia adentro de la línea)
+    const pEnd   = pts[pts.length - 1];
+    const pPrev  = pts[pts.length - 2];
 
-    // Rol
-    const rO = offsetRole(pO, ladoO, tam);
-    const rD = offsetRole(pD, ladoD, tam);
-    if (a.role_o) { drawSoftText(ctx, a.role_o, rO.x, rO.y, tam); }
-    if (a.role_d) { drawSoftText(ctx, a.role_d, rD.x, rD.y, tam); }
+    // --- CONFIGURACIÓN DE CARRILES (Espaciado) ---
+    // distAlong: qué tan lejos del nodo está
+    // distPerp: qué tan separado de la línea está (+derecha, -izquierda)
+    const GAP_TEXT = 14 + (tam/3); // Distancia lateral base
+    
+    // 1. MULTIPLICIDAD (Carril Izquierdo/Superior, Cerca)
+    const posMultO = getVectorPos(pStart, pNext, 16, -GAP_TEXT);
+    const posMultD = getVectorPos(pEnd,   pPrev, 16,  GAP_TEXT); // Invertimos signo porque el vector destino "entra"
 
-    // Calificador
-    const qO = offsetQual(pO, ladoO, tam);
-    const qD = offsetQual(pD, ladoD, tam);
-    if (a.qual_o) { drawQualifier(ctx, a.qual_o, qO.x, qO.y, tam); }
-    if (a.qual_d) { drawQualifier(ctx, a.qual_d, qD.x, qD.y, tam); }
+    if (a.card_o) drawLabel(ctx, a.card_o, posMultO.x, posMultO.y, tam);
+    if (a.card_d) drawLabel(ctx, a.card_d, posMultD.x, posMultD.y, tam);
 
-    // Etiqueta centrada
+    // 2. ROL (Carril Derecho/Inferior, Cerca) -> ¡Lado opuesto a Multiplicidad!
+    const posRolO = getVectorPos(pStart, pNext, 16, GAP_TEXT);
+    const posRolD = getVectorPos(pEnd,   pPrev, 16, -GAP_TEXT);
+
+    if (a.role_o) drawSoftText(ctx, a.role_o, posRolO.x, posRolO.y, tam);
+    if (a.role_d) drawSoftText(ctx, a.role_d, posRolD.x, posRolD.y, tam);
+
+    // 3. CALIFICADOR (Carril Izquierdo, Lejos) -> Se apila después de Multiplicidad
+    // Le damos más 'distAlong' (45px) para que no tape el 1 o *
+    const posQualO = getVectorPos(pStart, pNext, 45, -GAP_TEXT);
+    const posQualD = getVectorPos(pEnd,   pPrev, 45, GAP_TEXT);
+
+    if (a.qual_o) drawQualifier(ctx, a.qual_o, posQualO.x, posQualO.y, tam);
+    if (a.qual_d) drawQualifier(ctx, a.qual_d, posQualD.x, posQualD.y, tam);
+
+
+    // 4. ETIQUETA CENTRAL (Nombre de la relación)
     if (a.etiqueta) {
       let maxL = -1, mid = null;
       for (let i = 0; i < pts.length - 1; i++) {
         const p1 = pts[i], p2 = pts[i + 1];
         const L = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-        if (L > maxL) { maxL = L; mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2, p1, p2 }; }
+        if (L > maxL) { maxL = L;
+          mid = { p1, p2 }; // Guardamos el segmento más largo
+        }
       }
       if (mid) {
-        const off = normalDe(mid.p1, mid.p2, 10);
-        drawLabel(ctx, a.etiqueta, off.x + 6, off.y - 6, tam);
+        // La etiqueta va en el centro exacto del segmento más largo
+        const center = { x: (mid.p1.x + mid.p2.x)/2, y: (mid.p1.y + mid.p2.y)/2 };
+        // Le damos un pequeño offset perpendicular para que no tache la línea
+        const posLbl = getVectorPos(mid.p1, mid.p2, Math.hypot(mid.p2.x-mid.p1.x, mid.p2.y-mid.p1.y)/2, -10);
+        drawLabel(ctx, a.etiqueta, posLbl.x, posLbl.y, tam);
       }
     }
 
-    // Handles cuando está seleccionada
+    // Handles de selección (círculos azules)
     if (estado.seleccion?.tipo === 'arista' && DS.estado.aristas[estado.seleccion.idx] === a) {
       ctx.fillStyle = '#2563eb';
       (a.puntos || []).forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill(); });
-      ctx.beginPath(); ctx.arc(pO.x, pO.y, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(pD.x, pD.y, 6, 0, Math.PI * 2); ctx.fill();
+      // Inicio y fin
+      ctx.beginPath(); ctx.arc(pts[0].x, pts[0].y, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(pts[pts.length-1].x, pts[pts.length-1].y, 6, 0, Math.PI * 2); ctx.fill();
 
+      // Línea punteada de ayuda visual
       ctx.setLineDash([6, 3]); ctx.strokeStyle = '#2563eb';
       ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
       for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);

@@ -1,151 +1,278 @@
-:root{--f:13px;--grisB:#d9dde5;--grisE:#e6e6e6;--azul:#0b57d0;}
+:root{--f:13px;--grisB:#d9dde5;--grisE:#e6e6e6;--azul:#0b57d0;--sombra:0 4px 12px rgba(0,0,0,0.08);}
 *{box-sizing:border-box;font-family:system-ui,Segoe UI,Arial;margin:0;padding:0}
 html,body{height:100%;background:#fafafa;color:#111}
 
-/* Barra */
-.barra{display:flex;gap:.5rem;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--grisB);background:#fff}
-.barra button,.barra input,.barra select{font-size:var(--f);padding:.42rem .6rem;border:1px solid var(--grisB);background:#fff;border-radius:.6rem}
-.barra button:hover{background:#f3f6fb;cursor:pointer}
-.sep{width:1px;height:26px;background:var(--grisB);margin:0 .25rem}
-.zoomlbl{display:flex;gap:.35rem;align-items:center}
+/* Barra Superior */
+.barra{display:flex;gap:.5rem;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--grisB);background:#fff; height: 50px;}
+.barra button,.barra input,.barra select{font-size:var(--f);padding:.42rem .6rem;border:1px solid var(--grisB);background:#fff;border-radius:.5rem; transition: all 0.2s;}
+.barra button:hover{background:#f0f7ff; border-color: var(--azul); color: var(--azul); cursor:pointer}
+.sep{width:1px;height:24px;background:var(--grisB);margin:0 .25rem}
+.zoomlbl{display:flex;gap:.35rem;align-items:center; font-size: 12px; color: #475569;}
 
-/* Layout */
-.principal{display:grid;grid-template-columns:220px 1fr 260px;min-height:calc(100vh - 50px)}
-
-/* Paleta */
-.paleta{border-right:1px solid var(--grisB);background:#fff;padding:.6rem;overflow:auto}
-.paleta .pieza{user-select:none;border:1px dashed #c9d3e5;padding:.5rem;border-radius:.6rem;margin:.5rem 0;background:#fbfdff;cursor:grab}
-.paleta .pieza:active{background:#f4f8ff;cursor:grabbing}
-.paleta .nota{font-size:12px;color:#475569;margin-top:.6rem}
-
-/* Lienzo */
-.zona{position:relative;overflow:auto;background:#fff}
-#lienzo{display:block;background:#fff}
-
-/* v1.1.2: los editores pasan a position:fixed (anclados a la ventana),
-   así no se desalinean entre hojas ni con scroll */
-#editor_inline{
-  position:fixed;           /* antes: absolute */
-  z-index:50;
-  display:none;
-  padding:.2rem .3rem;
-  border:2px solid var(--azul);
-  border-radius:.4rem;
-  outline:none;
-  background:#fff;
-  box-shadow:0 6px 18px rgba(0,0,0,.08);
-  font:13px system-ui
+/* Layout Principal */
+.principal {
+  display: grid;
+  /* El JS inyectará los valores aquí */
+  grid-template-columns: 240px 1fr 300px;
+  height: calc(100vh - 50px);
+  overflow: hidden;
+  position: relative;
+  background: #f1f5f9; /* Color de fondo gris claro para la app */
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Animación más suave */
 }
 
-/* Botón eliminar ya estaba fijo */
+/* Sidebars */
+.sidebar {
+  background: #fff;
+  border-right: 1px solid var(--grisB);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 2; /* Por encima del lienzo si fuera necesario */
+}
+.sidebar.derecho {
+  border-right: none;
+  border-left: 1px solid var(--grisB);
+}
+
+/* Header del Sidebar (más elegante) */
+.sidebar-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 .75rem; height: 44px;
+  background: #fff; border-bottom: 1px solid #f1f5f9;
+}
+.sidebar-header h4 { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }
+
+/* Botones de cerrar (dentro del panel) */
+.btn-cerrar {
+  border: none; background: transparent; color: #94a3b8;
+  font-size: 16px; width: 28px; height: 28px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-cerrar:hover { background: #f1f5f9; color: #ef4444; }
+
+/* Botones FLOTANTES (Pestañas laterales) - DISEÑO MEJORADO */
+.btn-flotante-abrir {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 10;
+  width: 20px; height: 48px; /* Más altos y delgados */
+  background: #fff;
+  cursor: pointer; color: #64748b;
+  border: 1px solid var(--grisB);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  transition: all 0.2s ease;
+}
+.btn-flotante-abrir:hover {
+  background: var(--azul); color: #fff; border-color: var(--azul);
+  width: 24px; /* Efecto sutil de crecer */
+}
+
+/* Pestaña izquierda */
+.btn-flotante-abrir.izq {
+  left: 0;
+  border-left: none;
+  border-radius: 0 8px 8px 0; /* Redondeado solo a la derecha */
+}
+
+/* Pestaña derecha */
+.btn-flotante-abrir.der {
+  right: 0;
+  border-right: none;
+  border-radius: 8px 0 0 8px; /* Redondeado solo a la izquierda */
+}
+
+
+/* Secciones internas del sidebar */
+.seccion-sidebar { padding: 1rem; border-bottom: 1px solid #f8fafc; overflow-y: auto; }
+.seccion-sidebar h5 { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: .8rem; text-transform: uppercase; }
+
+/* Piezas (Paleta) */
+.pieza {
+  user-select:none; border:1px solid #e2e8f0; padding:.5rem .7rem;
+  border-radius:.4rem; margin-bottom:.5rem; background:#fff;
+  cursor:grab; font-size: 13px; color: #334155;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  transition: all 0.2s;
+}
+.pieza:hover { border-color: var(--azul); color: var(--azul); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+.pieza:active { cursor:grabbing; background:#f8fafc; }
+.nota { font-size:11px; color:#94a3b8; margin-top:.8rem; font-style: italic; text-align: center; }
+
+/* Opciones */
+.grupo { margin-bottom: 1rem; font-size: 13px; color: #475569; }
+.grupo label { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; cursor: pointer; }
+.etq { font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: .4rem; display:block; }
+.fila { display: flex; gap: .5rem; margin-top:.5rem; flex-wrap:wrap; }
+
+/* Inputs y Selects */
+.sidebar input[type="text"], .sidebar select {
+  width: 100%; padding: .4rem .5rem; border: 1px solid var(--grisB);
+  border-radius: .4rem; font-size: 13px; margin-bottom: .5rem; color: #334155;
+}
+.sidebar button.action-btn {
+  flex: 1; border: 1px solid var(--grisB); background: #fff;
+  padding: .4rem; border-radius: .4rem; cursor: pointer; font-size: 12px; font-weight: 500;
+}
+.sidebar button.action-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+
+
+/* --- LIENZO Y ZONA DE TRABAJO --- */
+/* AQUI ESTA LA CLAVE DEL CENTRADO */
+.zona {
+  position: relative;
+  background: #f1f5f9; /* Color de fondo gris */
+  width: 100%;
+  height: 100%;
+  overflow: auto; /* Permite scroll si la hoja es gigante */
+  
+  /* Centrado moderno usando Grid */
+  display: grid;
+  place-items: center; 
+}
+
+/* El papel */
+#lienzo {
+  display: block;
+  background: #fff;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12); /* Sombra elegante para que parezca papel flotando */
+  /* margin: auto;  <-- Grid ya lo centra, pero esto asegura margen en scroll */
+}
+
+
+/* Overlays (Flotantes) */
+#editor_inline{
+  position:fixed; z-index:50; display:none;
+  padding:.3rem .5rem; border:2px solid var(--azul);
+  border-radius:.4rem; outline:none; background:#fff;
+  box-shadow: var(--sombra); font:13px system-ui
+}
+
 #btn_borrar_sel{
-  position:fixed;
-  z-index:49;
-  display:none;
-  border:none;
-  background:#ef4444;
-  color:#fff;
-  border-radius:.5rem;
-  padding:.2rem .4rem;
-  font-size:12px;
-  box-shadow:0 4px 10px rgba(0,0,0,.1);
-  cursor:pointer
+  position:fixed; z-index:49; display:none;
+  border:none; background:#ef4444; color:#fff;
+  border-radius:20px; padding:.3rem .8rem; font-size:12px; font-weight: 600;
+  box-shadow: var(--sombra); cursor:pointer;
+  transition: transform 0.1s;
 }
+#btn_borrar_sel:hover { transform: scale(1.05); background: #dc2626; }
 
-/* Editor de aristas (mini popover) – ahora también fixed */
-.pop{
-  position:fixed;           /* antes: absolute */
-  z-index:50;
-  display:none;
-  background:#fff;
-  border:1px solid var(--grisB);
-  border-radius:.6rem;
-  padding:.5rem .6rem;
-  box-shadow:0 10px 30px rgba(0,0,0,.10);
-  min-width:280px
-}
-.pop .fila{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.35rem}
-.pop .fila2{display:flex;gap:.5rem;margin-bottom:.35rem}
-.pop label{font-size:11.5px;color:#334155}
-.pop input{width:100%;padding:.34rem .45rem;border:1px solid var(--grisB);border-radius:.45rem;font-size:13px;background:#fff}
-.pop .acciones{display:flex;gap:.5rem;justify-content:flex-end}
-.pop button{border:1px solid var(--grisB);background:#fbfdff;padding:.35rem .6rem;border-radius:.5rem;cursor:pointer}
-.pop button:hover{background:#f3f6fb}
-
-/* Panel */
-.panel{border-left:1px solid var(--grisB);background:#fff;padding:.6rem;overflow:auto}
-.panel .grupo{margin-bottom:1rem;font-size:13px}
-.panel .etq{font-size:12px;color:#334155;margin-bottom:.2rem;display:block}
-.panel input[type="text"],.panel select{width:100%;padding:.34rem .45rem;border:1px solid var(--grisB);border-radius:.45rem;font-size:13px;background:#fff;margin-bottom:.4rem}
-.panel .fila{display:flex;gap:.4rem;margin-top:.35rem;flex-wrap:wrap}
-.panel button{flex:1 1 auto;border:1px solid var(--grisB);background:#fbfdff;padding:.35rem .45rem;border-radius:.5rem;cursor:pointer}
-.panel button:hover{background:#f3f6fb}
-.panel .nota{display:block;color:#475569;font-size:11.5px;margin-top:.35rem}
-
-#editor_arista.pop{ width:clamp(240px, 44vw, 420px); max-width:92vw; }
-#editor_arista .fila input, #editor_arista .fila select{ width:100%; }
-
-/* Ayuda */
-.ayuda{position:fixed;right:10px;bottom:10px;background:#0b57d0;color:#fff;border-radius:.7rem;padding:.35rem .6rem;font-size:12px;opacity:.9;pointer-events:none}
-
-/* Editor de arista (asociación UML) */
-.editor-arista{
-  position:fixed; z-index:30; background:#fff; border:1px solid #cbd5e1;
-  border-radius:.6rem; padding:.75rem; box-shadow:0 6px 22px rgba(0,0,0,.08);
-  min-width: 520px; max-width: 720px;
-}
-.editor-arista .ea-grid{
-  display:grid; grid-template-columns: 1fr 1fr 1fr; gap:.75rem; align-items:start;
-}
-.editor-arista .ea-col label{ display:block; font-size:12px; color:#334155; margin:.25rem 0 .15rem; }
-.editor-arista .ea-col input,
-.editor-arista .ea-col select{
-  width:100%; padding:.45rem .55rem; border:1px solid #cbd5e1; border-radius:.5rem; font-size:13px;
-  background:#fff;
-}
-.editor-arista .ea-subtitle{
-  font-weight:600; font-size:12px; color:#0f172a; margin-bottom:.25rem;
-  border-left:3px solid #0b57d0; padding-left:.4rem;
-}
-.editor-arista .ea-actions{
-  display:flex; gap:.5rem; justify-content:flex-end; margin-top:.5rem;
-}
-.editor-arista .ea-ok{
-  background:#0b57d0; color:#fff; border:1px solid #0b57d0; border-radius:.55rem; padding:.5rem .8rem; cursor:pointer;
-}
-.editor-arista .ea-cancel{
-  background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:.55rem; padding:.5rem .8rem; cursor:pointer;
-}
-
-/* Etiquetas flotantes de multiplicidad/rol/calificador sobre lienzo */
-.ds-label{
-  background:#fff; border:1px solid #e5e7eb; padding:2px 4px;
-  border-radius:.35rem; font-size:12px;
-}
-
-/* Overlay editor de aristas */
+/* Editor de Arista */
 #editor_arista {
-  background:#fff; border:1px solid #e5e7eb; border-radius:10px;
-  box-shadow:0 10px 30px rgba(0,0,0,.12);
-  padding:10px; min-width:320px; max-width:420px;
+  display:none; position:fixed; z-index:1002;
+  background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  padding:16px; min-width:320px;
+  left:50%; top:50%; transform:translate(-50%,-50%);
+  width:min(520px, calc(100vw - 32px));
+  max-width:calc(100vw - 32px);
+  max-height:calc(100vh - 32px);
+  overflow:auto;
 }
-#editor_arista .ea-wrap { display:flex; flex-direction:column; gap:8px; }
-#editor_arista label { display:block; font:600 12px system-ui; color:#0f172a; margin-bottom:4px; }
-#editor_arista input[type="text"],
-#editor_arista input[type="number"],
-#editor_arista select {
-  width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; font:13px system-ui;
-}
-#editor_arista .ea-row { display:flex; flex-direction:column; }
-#editor_arista .ea-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-#editor_arista .ea-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
-#editor_arista .ea-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; }
-#editor_arista .ea-ok { background:#0ea5e9; color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
-#editor_arista .ea-cancel { background:#f1f5f9; color:#0f172a; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
 
-/* Input inline existente (para título/atributos/métodos) */
-#editor_inline{
-  box-shadow:0 6px 18px rgba(0,0,0,.1);
-  border:1px solid #cbd5e1; border-radius:8px;
-  padding:6px 8px; font:13px system-ui; background:#fff;
+#editor_arista label{display:block;font:600 11px system-ui;color:#64748b;margin:8px 0 4px; text-transform: uppercase;}
+#editor_arista input, #editor_arista select {
+  width:100%; box-sizing:border-box; padding:8px 10px;
+  border:1px solid #cbd5e1; border-radius:6px; font:13px system-ui;
+  transition: border 0.2s;
 }
+#editor_arista input:focus, #editor_arista select:focus { border-color: var(--azul); outline: none; }
+
+#editor_arista .ea-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px}
+#editor_arista .ea-subtitle{font:700 12px system-ui;color:#0f172a;margin:4px 0; border-left:3px solid var(--azul); padding-left:6px;}
+#editor_arista .ea-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px; padding-top: 10px; border-top: 1px solid #f1f5f9;}
+#editor_arista .ea-ok{background:#0b57d0;color:#fff;border:0;padding:8px 16px;border-radius:6px;cursor:pointer; font-weight: 500;}
+#editor_arista .ea-cancel{background:#fff;color:#64748b;border:1px solid #cbd5e1;padding:8px 16px;border-radius:6px;cursor:pointer; font-weight: 500;}
+#editor_arista .ea-ok:hover { background: #1d4ed8; }
+
+/* Etiquetas del canvas */
+.ds-label{
+  background: rgba(255,255,255,0.9); border:1px solid #e2e8f0; padding:2px 6px;
+  border-radius: 4px; font-size:11px; color: #334155; pointer-events: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.ayuda {
+    position: fixed;
+    bottom: 16px;
+
+    left: 50%;
+    transform: translateX(-50%);
+
+    background: #1e293b;
+    color: #fff;
+    border-radius: 20px;
+    padding: .5rem 1rem;
+    font-size: 12px;
+    opacity: .9;
+    pointer-events: none;
+    z-index: 40;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 640px){
+  #editor_arista .ea-grid{ grid-template-columns:1fr; }
+}
+
+/* Estilos para el Asistente Gemini */
+.contenido-gemini {
+  display: flex; flex-direction: column; height: 100%;
+  background: #f8fafc; padding: 0; overflow: hidden;
+}
+
+.gemini-mode {
+  display: flex; gap: 10px; padding: 10px; background: #fff; border-bottom: 1px solid #e2e8f0;
+  justify-content: center;
+}
+.gemini-mode label {
+  font-size: 11px; font-weight: bold; color: #475569; cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
+}
+
+.gemini-chat {
+  flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px;
+}
+.msg {
+  max-width: 85%; padding: 8px 12px; border-radius: 8px; font-size: 13px; line-height: 1.4;
+  word-wrap: break-word;
+}
+.msg.bot { align-self: flex-start; background: #fff; border: 1px solid #e2e8f0; color: #334155; }
+.msg.user { align-self: flex-end; background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+.msg.error { align-self: center; background: #fee2e2; color: #991b1b; font-size: 11px; }
+
+.gemini-input-area {
+  background: #fff; border-top: 1px solid #e2e8f0; padding: 10px;
+}
+.gemini-preview {
+  display: flex; align-items: center; gap: 8px; padding: 4px; background: #f1f5f9;
+  border-radius: 4px; margin-bottom: 6px; font-size: 11px;
+}
+.gemini-preview img { height: 30px; border-radius: 4px; }
+.gemini-preview button { border: 0; background: transparent; cursor: pointer; font-weight: bold; }
+
+#gemini_prompt {
+  width: 100%; height: 50px; border: 1px solid #cbd5e1; border-radius: 6px;
+  padding: 6px; font-family: system-ui; font-size: 12px; resize: none; margin-bottom: 6px;
+}
+#gemini_prompt:focus { outline: none; border-color: #0b57d0; }
+
+.gemini-tools { display: flex; justify-content: space-between; align-items: center; }
+.btn-tool {
+  background: transparent; border: 1px solid #cbd5e1; border-radius: 4px;
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; transition: all 0.1s;
+}
+.btn-tool:hover { background: #f1f5f9; }
+.btn-tool.recording { background: #fecaca; border-color: #ef4444; color: #ef4444; animation: pulse 1s infinite; }
+
+.btn-send {
+  background: #0b57d0; color: #fff; border: 0; padding: 6px 14px;
+  border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;
+}
+.btn-send:hover { background: #1d4ed8; }
+.btn-send:disabled { background: #94a3b8; cursor: not-allowed; }
+
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }

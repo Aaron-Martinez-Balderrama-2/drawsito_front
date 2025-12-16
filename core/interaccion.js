@@ -493,12 +493,21 @@
     setTimeout(()=>dom.ea_lbl.focus(), 0);
   }
   dom.ea_cancel.onclick = ()=> dom.editorArista.style.display = "none";
+// drawsito_front/core/interaccion.js
+// Busca la línea donde empieza: dom.editorArista.addEventListener('submit', (e)=>{ ...
+// (Aprox línea 448 en el archivo original)
+
   dom.editorArista.addEventListener('submit', (e)=>{
     e.preventDefault();
     const s = estado.seleccion;
     if(s?.tipo!=='arista') { dom.editorArista.style.display='none'; return; }
+    
+    // Obtenemos la arista actual y sus nodos padres
     const a = estado.aristas[s.idx]; if(!a) return;
+    const nO = DS.util.buscarNodoPorId(a.origenId);
+    const nD = DS.util.buscarNodoPorId(a.destinoId);
 
+    // Capturamos valores del formulario
     a.etiqueta = dom.ea_lbl.value.trim() || undefined;
     a.card_o   = dom.ea_o.value.trim()   || undefined;
     a.card_d   = dom.ea_d.value.trim()   || undefined;
@@ -508,15 +517,85 @@
     a.qual_d   = dom.ea_qual_d.value.trim() || undefined;
     a.nav      = dom.ea_nav.value || 'o2d';
     a.tam      = Math.max(10, Math.min(24, parseInt(dom.ea_sz.value||'12',10)));
+    a.uml      = (dom.ea_preset ? dom.ea_preset.value : (a.uml||'assoc'));
 
-    // NUEVO: preset UML (si existe control: se guarda; si no, mantiene lo que tenga o 'assoc')
-    a.uml = (dom.ea_preset ? dom.ea_preset.value : (a.uml||'assoc'));
+    // --- Modificacion 15/12/25 v0.0.3 lo hice por que detecto si es M:N para transformar graficamente ---
+    const esMuchos = (c) => c && c.indexOf('*') !== -1;
+    const esMn = (a.nav === 'both') || (esMuchos(a.card_o) && esMuchos(a.card_d));
+
+    if (esMn && nO && nD) {
+        // 1. Calcular posición central para la nueva tabla
+        const cx = (nO.x + nD.x) / 2;
+        const cy = (nO.y + nD.y) / 2;
+
+        // 2. Crear el Nodo Detalle (Tabla intermedia)
+        const idDetalle = Date.now();
+        const nombreDetalle = 'Detalle' + nO.titulo.replace(/\s+/g,'') + nD.titulo.replace(/\s+/g,'');
+        
+        // Modificacion 15/12/25 v0.0.4 lo hice por que calculo nombres de atributos unicos para evitar colision visual
+        let fk1 = 'id_' + nO.titulo.toLowerCase();
+        let fk2 = 'id_' + nD.titulo.toLowerCase();
+        
+        if (fk1 === fk2) {
+            fk1 = fk1 + '_1';
+            fk2 = fk2 + '_2';
+        }
+
+        const nodoDetalle = {
+            id: idDetalle, tipo: 'clase',
+            x: cx - 60, y: cy - 40,
+            ancho: 160, alto: 100, minW:140, minH:80,
+            titulo: nombreDetalle,
+            atributos: [
+                '- id', 
+                `- ${fk1}`, 
+                `- ${fk2}`
+            ],
+            metodos: []
+        };
+        DS.util.layoutClase(nodoDetalle);
+
+        // 3. Crear las 2 aristas nuevas (Padre(1) --> (*)Detalle)
+        // Arista 1: Origen -> Detalle
+        const arista1 = {
+            id: idDetalle + 1,
+            origenId: nO.id, destinoId: idDetalle,
+            card_o: '1', card_d: '*', // Padre es 1, Detalle es *
+            nav: 'o2d', uml: 'assoc', tam: 12
+        };
+
+        // Arista 2: Destino -> Detalle
+        const arista2 = {
+            id: idDetalle + 2,
+            origenId: nD.id, destinoId: idDetalle,
+            card_o: '1', card_d: '*', // Padre es 1, Detalle es *
+            nav: 'o2d', uml: 'assoc', tam: 12
+        };
+
+        // 4. Aplicar cambios al estado (Agregamos nodo y aristas nuevas, quitamos la vieja)
+        estado.nodos.push(nodoDetalle);
+        estado.aristas.push(arista1);
+        estado.aristas.push(arista2);
+        estado.aristas.splice(s.idx, 1); // Eliminamos la arista M:N original
+
+        // 5. Emitir eventos (para colaboracion)
+        DS.emitAddNode(nodoDetalle);
+        DS.emitAddEdge(arista1);
+        DS.emitAddEdge(arista2);
+        DS.emitDeleteEdge(a.id);
+
+        // 6. Limpiar selección y redibujar
+        estado.seleccion = null;
+        dom.editorArista.style.display='none';
+        DS.render.dibujar();
+        return; // Salimos para no ejecutar el update de la arista vieja
+    }
+    // -------------------------------------------------------------------------------------------------
 
     DS.emitUpdateEdge(a.id, {
       etiqueta:a.etiqueta, card_o:a.card_o, card_d:a.card_d,
       role_o:a.role_o, role_d:a.role_d, qual_o:a.qual_o, qual_d:a.qual_d,
       nav:a.nav, tam:a.tam,
-      // NUEVO: enviar el preset UML
       uml:a.uml
     });
 
@@ -570,27 +649,51 @@
   // === Guardar / Cargar ===================================================
   dom.btnGuardar.onclick = async ()=>{
     const paquete = { version: "1.1.4-uml-presets", nodos: estado.nodos, aristas: estado.aristas, meta: { guardado: new Date().toISOString() } };
-    const body = new URLSearchParams({ accion: "guardar", token: estado.token_csrf, json: JSON.stringify(paquete) });
+    
+    // Modificacion 15/12/25 v0.0.2 lo hice por que necesito el ID actual del input para enviarlo al back
+    const idActual = dom.inpId.value.trim(); 
+
+    // Modificacion 15/12/25 v0.0.2 lo hice por que agregue el parametro 'id' al cuerpo del POST
+    const body = new URLSearchParams({ 
+        accion: "guardar", 
+        token: estado.token_csrf, 
+        json: JSON.stringify(paquete),
+        id: idActual 
+    });
+    
     const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
     const d = await r.json().catch(() => ({ ok: false }));
-    if (d.ok) { alert("Guardado como ID: " + d.id); dom.inpId.value = d.id; } else { alert("No se pudo guardar"); }
+    if (d.ok) { 
+        alert("Guardado exitosamente: " + d.id); // Modificacion 15/12/25 v0.0.2 lo hice por que mejore el mensaje de exito
+        dom.inpId.value = d.id; 
+    } else { alert("No se pudo guardar: " + (d.msg || 'Error desconocido')); } // Modificacion 15/12/25 v0.0.2 lo hice por que muestro el error del back
   };
 
-  dom.btnCargar.onclick = async ()=>{
+dom.btnCargar.onclick = async ()=>{
     const id = dom.inpId.value.trim(); if (!id) return alert("Ingrese un ID");
     const r = await fetch(API + "?accion=cargar&id=" + encodeURIComponent(id));
     if (!r.ok) return alert("No existe");
     const d = await r.json();
+    
     // Mapeo defensivo de aristas antiguas + default de preset UML
-    estado.nodos = d.nodos || [];
-    estado.aristas = (d.aristas||[]).map(a=>({
+    const nuevosNodos = d.nodos || [];
+    const nuevasAristas = (d.aristas||[]).map(a=>({
       puntos:[], tam:12,
       nav:(a.nav||'o2d'),
       uml:(a.uml||'assoc'),
       ...a
     }));
+
+    // Actualizamos localmente
+    estado.nodos = nuevosNodos;
+    estado.aristas = nuevasAristas;
     estado.id_sec = 1 + (estado.nodos.reduce((m, n) => Math.max(m, n.id), 0) || 0);
     estado.seleccion = null; estado.selNodos.clear();
+
+    // --- Modificacion 16/12/25 v0.0.6: Si estamos en colaboracion, avisar a todos ---
+    DS.emitLoadFull(estado.nodos, estado.aristas); 
+    // ------------------------------------------------------------------------------
+
     pagina.aplicarPapel(); render.dibujar();
   };
 

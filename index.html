@@ -25,7 +25,7 @@
       min-width:120px;
     }
     #editor_arista{
-      display:none; position:fixed; z-index:1001;
+      display:none; position:fixed; z-index:1002;
       background:#fff; border:1px solid #e5e7eb; border-radius:10px;
       box-shadow:0 10px 30px rgba(0,0,0,.12);
       padding:12px; min-width:340px; max-width:520px;
@@ -46,7 +46,7 @@
 
     /* Botón de eliminar (overlay posicionado por JS) */
     #btn_borrar_sel{
-      position:fixed; display:none; z-index:1002;
+      position:fixed; display:none; z-index:1001;
       background:#ef4444; color:#fff; border:0;
       padding:6px 10px; border-radius:8px; cursor:pointer;
       box-shadow:0 6px 18px rgba(0,0,0,.18);
@@ -85,113 +85,186 @@
   </span>
 </header>
 
-<main class="principal">
-  <aside class="paleta">
-    <h4>Paleta</h4>
-    <div class="pieza" draggable="true" data-tipo="clase">🧱 Clase UML</div>
-    <div class="pieza" draggable="true" data-tipo="texto">🔖 Texto</div>
-    <p class="nota">Arrastra una pieza al lienzo. Doble clic para editar. Enter agrega filas. Arrastra desde los círculos azules para conectar.</p>
+<main class="principal" id="layout_principal">
+  
+  <aside class="sidebar izquierdo" id="sidebar_izq">
+    <div class="sidebar-header">
+      <h4>Herramientas</h4>
+      <button class="btn-cerrar" onclick="toggleIzq()">❮</button>
+    </div>
+
+    <div class="seccion-sidebar">
+      <h5>Paleta</h5>
+      <div class="pieza" draggable="true" data-tipo="clase">🧱 Clase UML</div>
+      <div class="pieza" draggable="true" data-tipo="texto">🔖 Texto</div>
+      <p class="nota">Arrastra al lienzo.</p>
+    </div>
+
+    <hr/>
+
+    <div class="seccion-sidebar">
+      <h5>Opciones</h5>
+      <div class="grupo">
+        <label><input type="checkbox" id="opt_ver_grid" checked> Cuadrícula</label><br/>
+        <label><input type="checkbox" id="opt_ver_pag" checked> Vista de pág.</label><br/>
+        <label><input type="checkbox" id="opt_conectores" checked> Conectores</label>
+      </div>
+      <div class="grupo">
+        <div class="etq">Papel</div>
+        <select id="sel_papel">
+          <option value="A4" selected>A4</option>
+          <option value="Letter">Carta</option>
+        </select>
+        <div class="fila">
+          <label><input type="radio" name="ori" value="v" checked> Vert.</label>
+          <label><input type="radio" name="ori" value="h"> Horiz.</label>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <div id="panel_clase" class="seccion-sidebar" style="display:none; background:#f0f9ff; border:1px solid #bae6fd;">
+      <h5 style="color:#0284c7">Propiedades</h5>
+      <label class="etq">Nombre Clase</label>
+      <input type="text" id="clase_titulo" placeholder="Nombre..."/>
+      <div class="fila">
+        <button id="btn_add_atr" title="Añadir Atributo">+Atr</button>
+        <button id="btn_add_met" title="Añadir Método">+Met</button>
+      </div>
+    </div>
   </aside>
+
+  <button id="btn_abrir_izq" class="btn-flotante-abrir izq" onclick="toggleIzq()" style="display:none">❯</button>
+
 
   <section class="zona" id="zona_canvas">
     <canvas id="lienzo"></canvas>
-
-    <!-- Editor inline (nodos / filas) -->
+    
     <input id="editor_inline" type="text"/>
-
-    <!-- Editor de arista: Asociación (Multiplicidad, Navegabilidad, Rol, Calificador + Tipo UML) -->
     <form id="editor_arista" class="editor-arista">
-      <div class="ea-grid">
-        <div class="ea-col">
-          <label for="ea_lbl">Etiqueta (nombre de la asociación)</label>
-          <input id="ea_lbl" type="text" placeholder="p.ej. realiza / pertenece a">
-
-          <label for="ea_nav">Navegabilidad</label>
-          <select id="ea_nav">
-            <option value="o2d">Origen → Destino</option>
-            <option value="d2o">Destino → Origen</option>
-            <option value="both">Ambos extremos</option>
-            <option value="none">Sin flechas</option>
-          </select>
-
-          <!-- Tipo UML (presets 2–6) -->
-          <label for="ea_preset">Tipo UML</label>
-          <select id="ea_preset" name="ea_preset">
-            <option value="assoc">Asociación (por defecto)</option>
-            <option value="agg">Agregación (◇ hueco)</option>
-            <option value="comp">Composición (◆ lleno)</option>
-            <option value="gen">Generalización (△ hueco)</option>
-            <option value="real">Realización (△ hueco + discontinua)</option>
-            <option value="dep">Dependencia (V abierta + discontinua)</option>
-          </select>
-
-          <label for="ea_sz">Tamaño de texto (10–24)</label>
-          <input id="ea_sz" type="number" min="10" max="24" step="1" value="12">
-        </div>
-
-        <div class="ea-col">
-          <div class="ea-subtitle">Extremo Origen</div>
-          <label for="ea_o">Multiplicidad (Origen)</label>
-          <input id="ea_o" type="text" placeholder="1, 0..1, 0.., 1.., *">
-
-          <label for="ea_role_o">Rol (Origen)</label>
-          <input id="ea_role_o" type="text" placeholder="p.ej. cliente, padre, dueño">
-
-          <label for="ea_qual_o">Calificador (Origen)</label>
-          <input id="ea_qual_o" type="text" placeholder="p.ej. [número], [código]">
-        </div>
-
-        <div class="ea-col">
-          <div class="ea-subtitle">Extremo Destino</div>
-          <label for="ea_d">Multiplicidad (Destino)</label>
-          <input id="ea_d" type="text" placeholder="1, 0..1, 0.., 1.., *">
-
-          <label for="ea_role_d">Rol (Destino)</label>
-          <input id="ea_role_d" type="text" placeholder="p.ej. pedido, hijo, mascota">
-
-          <label for="ea_qual_d">Calificador (Destino)</label>
-          <input id="ea_qual_d" type="text" placeholder="p.ej. [fecha], [tipo]">
-        </div>
-      </div>
-
-      <div class="ea-actions">
-        <button type="submit" class="ea-ok">Aplicar</button>
-        <button type="button" id="ea_cancel" class="ea-cancel">Cancelar</button>
-      </div>
+       <div class="ea-grid">
+          <div class="ea-col">
+             <label>Etiqueta</label><input id="ea_lbl" type="text">
+             <label>Navegabilidad</label><select id="ea_nav"><option value="o2d">Origen → Destino</option><option value="d2o">Destino → Origen</option><option value="both">Ambos</option><option value="none">Ninguno</option></select>
+             <label>Tipo UML</label><select id="ea_preset"><option value="assoc">Asociación</option><option value="agg">Agregación</option><option value="comp">Composición</option><option value="gen">Generalización</option><option value="real">Realización</option><option value="dep">Dependencia</option></select>
+             <label>Tam.</label><input id="ea_sz" type="number" value="12">
+          </div>
+          <div class="ea-col">
+             <div class="ea-subtitle">Origen</div>
+             <input id="ea_o" placeholder="Mult."><input id="ea_role_o" placeholder="Rol"><input id="ea_qual_o" placeholder="Calif.">
+          </div>
+          <div class="ea-col">
+             <div class="ea-subtitle">Destino</div>
+             <input id="ea_d" placeholder="Mult."><input id="ea_role_d" placeholder="Rol"><input id="ea_qual_d" placeholder="Calif.">
+          </div>
+       </div>
+       <div class="ea-actions">
+         <button type="submit" class="ea-ok">Aplicar</button>
+         <button type="button" id="ea_cancel" class="ea-cancel">Cancelar</button>
+       </div>
     </form>
-
     <button id="btn_borrar_sel">🗑 Eliminar</button>
   </section>
 
-  <aside class="panel">
-    <h4>Opciones</h4>
-    <div class="grupo">
-      <label><input type="checkbox" id="opt_ver_grid" checked> Cuadrícula</label><br/>
-      <label><input type="checkbox" id="opt_ver_pag" checked> Vista de la página</label><br/>
-      <label><input type="checkbox" id="opt_conectores" checked> Puntos de conexión</label>
+
+  <aside class="sidebar derecho" id="sidebar_der">
+    <div class="sidebar-header">
+      <button class="btn-cerrar" onclick="toggleDer()">❯</button>
+      <h4>Asistente Gemini 🤖</h4>
     </div>
-    <div class="grupo">
-      <div class="etq">Tamaño del papel</div>
-      <select id="sel_papel">
-        <option value="A4" selected>A4 (210 × 297 mm)</option>
-        <option value="Letter">Carta (216 × 279 mm)</option>
-      </select>
-      <div class="fila">
-        <label><input type="radio" name="ori" value="v" checked> Vertical</label>
-        <label><input type="radio" name="ori" value="h"> Horizontal</label>
+  <div class="contenido-gemini">
+    <div class="gemini-mode">
+      <label title="Modifica lo existente sin borrar">
+        <input type="radio" name="g_mode" value="asistente" checked> 👷 Asistente
+      </label>
+      <label title="Borra todo y crea de cero">
+        <input type="radio" name="g_mode" value="arquitecto"> 🏗️ Arquitecto
+      </label>
+    </div>
+
+    <div id="gemini_chat" class="gemini-chat">
+      <div class="msg bot">Hola, soy Gemini. ¿Qué diagrama construimos hoy?</div>
+    </div>
+
+    <div class="gemini-input-area">
+      
+      <div id="gemini_preview" class="gemini-preview" style="display:none">
+        <img id="prev_img" src="" />
+        <span id="prev_audio_lbl">🎤 Audio listo</span>
+        <button onclick="limpiarAdjuntos()">×</button>
       </div>
-      <small class="nota">La hoja se expande/contrae por bloques según el contenido.</small>
+
+      <textarea id="gemini_prompt" placeholder="Escribe instrucciones... (ej: 'Crea una tabla Usuario')"></textarea>
+      
+      <div class="gemini-tools">
+        <label class="btn-tool" title="Subir imagen/diagrama">
+          📷 <input type="file" id="inp_img_gemini" accept="image/*" hidden>
+        </label>
+        
+        <button class="btn-tool" id="btn_audio_gemini" title="Mantener para hablar">🎙️</button>
+        
+        <button class="btn-send" id="btn_enviar_gemini">Enviar ➤</button>
+      </div>
     </div>
-    <hr/>
-    <div id="panel_clase" class="grupo" style="display:none">
-      <h5>Clase UML</h5>
-      <label class="etq">Nombre</label>
-      <input type="text" id="clase_titulo" placeholder="Nombre de la clase"/>
-      <div class="fila"><button id="btn_add_atr">+ Atributo</button><button id="btn_add_met">+ Método</button></div>
-      <small class="nota">Consejo: doble clic para editar. Vacío + Enter elimina fila.</small>
-    </div>
+  </div>
   </aside>
+  
+  <button id="btn_abrir_der" class="btn-flotante-abrir der" onclick="toggleDer()" style="display:none">❮</button>
+
 </main>
+
+<script>
+  let izqAbierto = true;
+  let derAbierto = true;
+  const grid = document.getElementById('layout_principal');
+  const sbIzq = document.getElementById('sidebar_izq');
+  const sbDer = document.getElementById('sidebar_der');
+  const btnIzq = document.getElementById('btn_abrir_izq');
+  const btnDer = document.getElementById('btn_abrir_der');
+
+  function actualizarGrid(){
+    const colIzq = izqAbierto ? "240px" : "0px";
+    const colDer = derAbierto ? "300px" : "0px";
+    grid.style.gridTemplateColumns = `${colIzq} 1fr ${colDer}`;
+    
+    // --- SOLUCIÓN CRÍTICA: Esperar a la animación CSS ---
+    // El CSS tarda 0.3s (300ms) en hacer la transición. 
+    // Si recalculamos antes, el ancho es incorrecto y la hoja se va.
+    setTimeout(() => {
+        if(window.DS && window.DS.pagina) {
+            window.DS.pagina.recalcularTamMundo(false);
+            // Opcional: Centrar vista si se desea
+            // window.DS.pagina.centrarVista(); 
+            window.DS.render.dibujar();
+        }
+    }, 320); // 320ms para estar seguros
+  }
+
+  window.toggleIzq = () => {
+    izqAbierto = !izqAbierto;
+    if(izqAbierto) { 
+        sbIzq.style.display='flex'; 
+        btnIzq.style.display='none'; 
+    } else { 
+        sbIzq.style.display='none'; 
+        btnIzq.style.display='flex'; // Flex para centrar el icono dentro
+    }
+    actualizarGrid();
+  };
+
+  window.toggleDer = () => {
+    derAbierto = !derAbierto;
+    if(derAbierto) { 
+        sbDer.style.display='flex'; 
+        btnDer.style.display='none'; 
+    } else { 
+        sbDer.style.display='none'; 
+        btnDer.style.display='flex'; 
+    }
+    actualizarGrid();
+  };
+</script>
 
 <div class="ayuda">Ctrl + rueda = Zoom • Backspace/Del elimina • Doble clic en línea = editar etiqueta/cardinalidades</div>
 
@@ -237,6 +310,7 @@
 <script src="core/render.js"></script>
 <script src="core/colaboracion.js"></script>
 <script src="core/interaccion.js"></script>
+<script src="core/ia.js"></script>
 <script src="app.js"></script>
 
 <script>
