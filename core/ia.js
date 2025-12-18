@@ -1,7 +1,9 @@
 // drawsito_front/core/ia.js
 (function(){
   const DS = window.DS;
-  const ENDPOINT = '/proyecto/drawsito_back/gemini.php'; // Proxy backend
+  
+  // MODIFICACIÓN: Usar la configuración global en lugar de ruta relativa
+  const ENDPOINT = (window.DRAWSITO_CONFIG && window.DRAWSITO_CONFIG.gemini) || 'https://drawsitoback-production.up.railway.app/gemini.php';
 
   // Elementos DOM
   const ui = {

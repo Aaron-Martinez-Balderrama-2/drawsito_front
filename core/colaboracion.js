@@ -1,10 +1,16 @@
 (function(){
   const DS = (window.DS = window.DS || {});
 
-  let rtCfg = (window.DRAWSITO_CONFIG && window.DRAWSITO_CONFIG.rt) || '../drawsito_back/tiempo_real.php';
-  if (rtCfg.indexOf('realtime.php') !== -1) rtCfg = rtCfg.replace('realtime.php','tiempo_real.php');
-  const RT  = rtCfg;
-  const WS  = (window.DRAWSITO_CONFIG && window.DRAWSITO_CONFIG.ws) || 'ws://localhost:8088';
+  // MODIFICACIÓN: Uso estricto de la configuración global
+  // Si no hay config, fallback a la URL de producción de Railway directamente
+  const BACKEND_FALLBACK = 'https://drawsitoback-production.up.railway.app';
+  
+  const RT = (window.DRAWSITO_CONFIG && window.DRAWSITO_CONFIG.rt) 
+             || (BACKEND_FALLBACK + '/tiempo_real.php');
+
+  // Si ws es null en la config, será null aquí. 
+  // Eliminamos el fallback a 'ws://localhost:8088' para evitar errores en producción.
+  const WS = (window.DRAWSITO_CONFIG && window.DRAWSITO_CONFIG.ws) || null;
 
   function espera(ms){ return new Promise(r=>setTimeout(r,ms)); }
   function throttle(fn, ms){
@@ -35,32 +41,41 @@
     async unirse(room){
       this.room = room;
       const fd = new FormData(); fd.append('accion','join'); fd.append('room', room);
-      const r = await fetch(RT, {method:'POST', body:fd});
-      const d = await r.json();
-      if (!d.ok) throw new Error('join failed');
-      this.client  = d.client_id;
-      this.version = d.version||0;
+      
+      try {
+        const r = await fetch(RT, {method:'POST', body:fd});
+        const d = await r.json();
+        if (!d.ok) throw new Error('join failed');
+        this.client  = d.client_id;
+        this.version = d.version||0;
 
-      // Cargar documento inicial
-      const E = DS.estado;
-      E.nodos   = d.doc.nodos || [];
-      E.aristas = d.doc.aristas || [];
-      const maxId = E.nodos.reduce((m,n)=>Math.max(m, n.id||0), 0);
-      const offset = 1000 + Math.floor(Math.random()*8000);
-      E.id_sec = maxId + offset;
+        // Cargar documento inicial
+        const E = DS.estado;
+        E.nodos   = d.doc.nodos || [];
+        E.aristas = d.doc.aristas || [];
+        const maxId = E.nodos.reduce((m,n)=>Math.max(m, n.id||0), 0);
+        const offset = 1000 + Math.floor(Math.random()*8000);
+        E.id_sec = maxId + offset;
 
-      DS.pagina.aplicarPapel();
-      DS.pagina.recalcularTamMundo(false);
-      DS.render.dibujar();
+        DS.pagina.aplicarPapel();
+        DS.pagina.recalcularTamMundo(false);
+        DS.render.dibujar();
 
-      this.activa = true;
+        this.activa = true;
 
-      // Preferimos WebSocket; si falla, long-poll de respaldo
-      const ok = await this._conectarWS();
-      if (!ok) this._buclePoll(); // fallback
+        // Preferimos WebSocket; si falla o es null, long-poll de respaldo
+        const ok = await this._conectarWS();
+        if (!ok) this._buclePoll(); // fallback
+      } catch (e) {
+        console.error("Error al unirse a la sala:", e);
+        alert("No se pudo conectar con el servidor de colaboración.");
+      }
     },
 
     async _conectarWS(){
+      // MODIFICACIÓN: Si WS es null (modo PHP puro), salimos inmediatamente
+      if (!WS) return false;
+
       try{
         if (this._ws) { try{ this._ws.close(); }catch(_){ } }
         const ws = new WebSocket(WS);
@@ -122,8 +137,9 @@
             DS.render.dibujar();
           }
         }catch(e){ await espera(500); }
-        // en paralelo, intentar reconectar WS
-        if (!this._wsOk) { await this._conectarWS(); }
+        
+        // en paralelo, intentar reconectar WS solo si existe URL configurada
+        if (!this._wsOk && WS) { await this._conectarWS(); }
       }
       this._polling = false;
     },

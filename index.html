@@ -268,7 +268,6 @@
 
 <div class="ayuda">Ctrl + rueda = Zoom • Backspace/Del elimina • Doble clic en línea = editar etiqueta/cardinalidades</div>
 
-<!-- Modales Auth -->
 <div id="modal_login" class="modal">
   <div class="box">
     <h3>Iniciar sesión</h3>
@@ -296,11 +295,16 @@
 </div>
 
 <script>
+  // CONFIGURACIÓN DE PRODUCCIÓN (RAILWAY)
+  const BACKEND_URL = "https://drawsitoback-production.up.railway.app";
+
   window.DRAWSITO_CONFIG = {
-    api:  "/proyecto/drawsito_back/api.php",
-    rt:   "/proyecto/drawsito_back/tiempo_real.php",
-    ws:   "ws://localhost:8088",  // WebSocket relay (instantáneo)
-    auth: "/proyecto/drawsito_back/auth.php"
+    api:    BACKEND_URL + "/api.php",
+    rt:     BACKEND_URL + "/tiempo_real.php",
+    ws:     null, // Usamos modo Polling para compatibilidad PHP total
+    auth:   BACKEND_URL + "/auth.php",
+    gemini: BACKEND_URL + "/gemini.php",
+    gen:    BACKEND_URL + "/generar_proyecto.php"
   };
   window.DRAWSITO_SESSION = { token:'', user:null };
 </script>
@@ -350,7 +354,8 @@ document.getElementById('btn_reg_ok').onclick = async ()=>{
   const p1    = document.getElementById('rg_p1').value;
   const p2    = document.getElementById('rg_p2').value;
   const fd = new FormData();
-  fd.append('accion','registrar'); fd.append('alias',alias); fd.append('email',email);
+  fd.append('accion','registrar');
+  fd.append('alias',alias); fd.append('email',email);
   fd.append('pass1',p1); fd.append('pass2',p2); fd.append('token', DRAWSITO_SESSION.token);
   const r = await fetch(DRAWSITO_CONFIG.auth, {method:'POST', body:fd});
   const d = await r.json();
@@ -365,7 +370,7 @@ document.getElementById('btn_logout').onclick = async ()=>{
   if(d.ok){ DRAWSITO_SESSION.user=null; pintarAuth(); }
 };
 
-/* Colaboración: une a la sala usando el ID (igual que antes) */
+/* Colaboración: une a la sala usando el ID */
 document.getElementById('btn_colaborar').onclick = async ()=>{
   const id = (document.getElementById('inp_id').value||'').trim();
   if (!id) return alert('Escribe un ID de sala (usa el mismo que el de guardado)');
@@ -376,14 +381,14 @@ document.getElementById('btn_colaborar').onclick = async ()=>{
 };
 </script>
 
-<!-- Generar proyecto (ZIP) -->
 <script>
 (function(){
   const btn = document.getElementById('btn_generar');
   btn.addEventListener('click', ()=>{
     const id = (document.getElementById('inp_id').value||'').trim();
     if (!id) { alert('Primero guarda el diagrama. Usa ese ID aquí.'); return; }
-    window.location.href = "/proyecto/drawsito_back/generar_proyecto.php?id="+encodeURIComponent(id);
+    // IMPORTANTE: Ahora usa la URL configurada en el objeto global
+    window.location.href = window.DRAWSITO_CONFIG.gen + "?id="+encodeURIComponent(id);
   });
 })();
 </script>
